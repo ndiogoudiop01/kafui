@@ -1,0 +1,581 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            RÈGLES SALARIALES — Paie Niger
+            Source : NG_Fiche de paie.xlsx + Ordonnance 96-039 (Code du Travail NE) + CGI Niger
+
+            ── Convention om_hr_payroll ──
+            • localdict['result']      = montant Python de la règle
+            • localdict['result_rate'] = taux d'affichage
+              IMPORTANT : tot_rule = result × result_qty × result_rate / 100
+            • 'contract' = hr.version (wage, date_start, etc.)
+            • 'inputs.CODE' = BrowsableObject sur les entrées du bulletin.
+              Pattern sécurisé : _i = inputs.CODE ; val = (_i.amount or 0.0) if _i else 0.0
+
+            ── Logique CNSS NE ──
+            Base CNSS = min(BRUT - ALLOC_FAM, 500 000 FCFA)
+            Salarié    : 5,25 %
+            Employeur  : 16,4 % (inclut toutes branches)
+            ANPE       : 1 % (patronal)
+
+            ── Abattements ITS NE ──
+            Frais professionnels : 13 % × (SB + HS35 + HS50 + SURSAL + PR_ANC + AUTRES − CNSS sal)
+            Frais expatrié       : 17 % (même base) si employé expatrié
+            Abattement famille   : 0 % (0 charge), 10 % (1), 15 % (2), 20 % (3),
+                                   25 % (4), 30 % (5+)
+
+            ── Barème ITS NE (Impôt Unique sur Salaire) ──
+            Appliqué sur BASE_ITS × (1 − abattement_famille) :
+             1 % → 0 – 25 000       (max    250)
+             2 % → 25 001 – 50 000   (max    500)
+             6 % → 50 001 – 100 000  (max  3 000)
+            13 % → 100 001 – 150 000 (max  6 500)
+            25 % → 150 001 – 300 000 (max 37 500)
+            30 % → 300 001 – 400 000 (max 30 000)
+            32 % → 400 001 – 700 000 (max 96 000)
+            34 % → 700 001 – 1 000 000 (max 102 000)
+            35 % → > 1 000 000
+
+            ── Heures supplémentaires NE ──
+            Taux horaire = contract.wage / 173.33 (40 h/semaine × 52/12)
+            HS25  : +25 % (40e → 48e heure)
+            HS35  : +35 % (au-delà de la 48e heure)
+            HS50  : +50 % (jours de repos &amp; jours fériés — diurnes)
+            HS100 : +100 % (nuits de repos &amp; nuits fériées)
+
+            ── Prime d'ancienneté NE ──
+            Ordonnance 96-039 (à confirmer CCIN) :
+            2 % à 2 ans, +1 %/an, plafonné 25 %.
+
+            ── FSSP NE ──
+            Retenue FSSP : 1 % du NET salarial.
+
+            Toutes les règles : company_id=False, country_id=NE.
+        -->
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 0 : TECHNIQUE (NB_JOURS)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 5 : NB_JOURS — Nombre de jours travaillés -->
+        <record id="rule_ne_nb_jours" model="hr.salary.rule">
+            <field name="name">Jours travaillés</field>
+            <field name="code">NB_JOURS</field>
+            <field name="sequence" eval="5"/>
+            <field name="category_id" ref="gvs_hr_payroll_ne.TECH_NE"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">_i = inputs.NB_JOURS
+if _i and _i.amount:
+    result = _i.amount
+else:
+    _wd = worked_days.WORK100
+    result = min(_wd.number_of_days, 26.0) if _wd else 26.0</field>
+            <field name="note">Priorité : 1) Other Input NB_JOURS (saisie manuelle exceptionnelle) si renseigné et non nul ;
+2) sinon, nombre de jours de l'onglet "Jours travaillés et entrées" (ligne WORK100), plafonné à 26 :
+   WORK100 est calculé par get_worked_day_lines() sur une base calendaire de 30 jours (mois complet =
+   30 − congés), commune à tous les pays GVS — alors que la convention Niger est un mois de 26 jours.
+   Un mois complet (WORK100=30) donne donc bien 26 jours payés (min(30,26)=26 → salaire plein).
+   ⚠ Pour un mois incomplet (congé posé), l'écart réel est calculé sur une base 30 puis plafonné à 26 :
+   la précision du prorata pour une absence partielle est donc légèrement approximative pour NE
+   (contrairement à BF/BJ/CI/TG, alignés sur 30). Utiliser l'Other Input NB_JOURS pour un prorata exact.
+3) sinon, 26 jours (mois complet Niger, 5 j/semaine).</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 1 : ÉLÉMENTS DU BRUT
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 10 : SB — Salaire de base (prorata NB_JOURS / 26) -->
+        <record id="rule_ne_sb" model="hr.salary.rule">
+            <field name="name">Salaire de base</field>
+            <field name="code">SB</field>
+            <field name="sequence" eval="10"/>
+            <field name="category_id" ref="om_hr_payroll.BASIC"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">result = contract.wage * min(NB_JOURS, 26.0) / 26.0</field>
+            <field name="note">SB proraté = wage × NB_JOURS / 26. Mois complet (26j) = salaire plein. Si NB_JOURS = 0
+(absence totale), SB = 0 — ne PAS utiliser "NB_JOURS if NB_JOURS else 26.0" : 0 est une valeur valide
+(falsy en Python) qui serait sinon incorrectement remplacée par 26 (mois complet payé).</field>
+        </record>
+
+        <!-- seq 20 : ALLOC_FAM — Allocation familiale (non imposable, hors CNSS) -->
+        <record id="rule_ne_alloc_fam" model="hr.salary.rule">
+            <field name="name">Allocation familiale</field>
+            <field name="code">ALLOC_FAM</field>
+            <field name="sequence" eval="20"/>
+            <field name="category_id" ref="gvs_hr_payroll_ne.ALW_NI_NE"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="amount_python_compute">_i = inputs.ALLOC_FAM
+result = (_i.amount or 0.0) if _i else 0.0</field>
+            <field name="note">Allocation familiale légale. Hors base ITS et hors base CNSS.
+is_prorata=False : montant forfaitaire mensuel.</field>
+        </record>
+
+        <!-- seq 30 : PR_ANC — Prime d'ancienneté (auto depuis date_start) -->
+        <record id="rule_ne_pr_anc" model="hr.salary.rule">
+            <field name="name">Prime d'ancienneté</field>
+            <field name="code">PR_ANC</field>
+            <field name="sequence" eval="30"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">today = payslip.date_to
+start = contract.date_start
+if start and today:
+    years = today.year - start.year - ((today.month, today.day) &lt; (start.month, start.day))
+    years = max(years, 0)
+    # Ordonnance 96-039 NE (à confirmer CCIN) :
+    # 2 % à 2 ans, +1 %/an, plafond 25 %.
+    if years &gt;= 2:
+        rate = min(years, 25)
+    else:
+        rate = 0
+else:
+    rate = 0
+result = round(SB * rate / 100.0)</field>
+            <field name="note">Ancienneté auto : 0 % si &lt; 2 ans ; 2 % à 2 ans ; +1 %/an.
+Plafond 25 % (Ordonnance 96-039 NE — à confirmer CCIN).
+result = SB × rate / 100 calculé directement (évite aléas de result_rate).</field>
+        </record>
+
+        <!-- seq 40 : SURSAL — Sursalaire -->
+        <record id="rule_ne_sursal" model="hr.salary.rule">
+            <field name="name">Sursalaire</field>
+            <field name="code">SURSAL</field>
+            <field name="sequence" eval="40"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="amount_python_compute">_i = inputs.SURSAL
+result = (_i.amount or 0.0) if _i else 0.0</field>
+            <field name="note">Complément au salaire catégoriel. Imposable ITS et CNSS.
+is_prorata=False : montant forfaitaire.</field>
+        </record>
+
+        <!-- seq 50 : HS25 — Heures supplémentaires 25 % (40e → 48e heure) -->
+        <record id="rule_ne_hs25" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 25%</field>
+            <field name="code">HS25</field>
+            <field name="sequence" eval="50"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute"># Heures supp 25 % — de la 40e à la 48e heure/semaine
+# Taux horaire = wage / 173.33 (40 h/sem × 52/12)
+_h = (inputs.HS25_H.amount or 0.0) if inputs.HS25_H else 0.0
+_hourly = contract.wage / 173.33 if contract.wage else 0.0
+result = round(_hourly * _h * 1.25)</field>
+            <field name="note">HS diurnes semaine (40h→48h) : taux horaire × heures × 1,25.
+Taux horaire = wage / 173,33 (40 h/semaine).</field>
+        </record>
+
+        <!-- seq 55 : HS35 — Heures supplémentaires 35 % (au-delà de la 48e heure) -->
+        <record id="rule_ne_hs35" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 35%</field>
+            <field name="code">HS35</field>
+            <field name="sequence" eval="55"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute"># Heures supp 35 % — au-delà de la 48e heure/semaine
+_h = (inputs.HS35_H.amount or 0.0) if inputs.HS35_H else 0.0
+_hourly = contract.wage / 173.33 if contract.wage else 0.0
+result = round(_hourly * _h * 1.35)</field>
+            <field name="note">HS diurnes semaine (au-delà 48h) : taux horaire × heures × 1,35.
+Inclus dans la base abattement frais prof. 13 %.</field>
+        </record>
+
+        <!-- seq 60 : HS50 — Heures supplémentaires 50 % (repos hebdo &amp; jours fériés diurnes) -->
+        <record id="rule_ne_hs50" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 50%</field>
+            <field name="code">HS50</field>
+            <field name="sequence" eval="60"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute"># Heures supp 50 % — jours de repos &amp; jours fériés (diurnes)
+_h = (inputs.HS50_H.amount or 0.0) if inputs.HS50_H else 0.0
+_hourly = contract.wage / 173.33 if contract.wage else 0.0
+result = round(_hourly * _h * 1.50)</field>
+            <field name="note">HS repos hebdo &amp; jours fériés diurnes : taux horaire × heures × 1,50.
+Inclus dans la base abattement frais prof. 13 %.</field>
+        </record>
+
+        <!-- seq 65 : HS100 — Heures supplémentaires 100 % (nuits de repos &amp; nuits fériées) -->
+        <record id="rule_ne_hs100" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 100%</field>
+            <field name="code">HS100</field>
+            <field name="sequence" eval="65"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute"># Heures supp 100 % — nuits de repos &amp; nuits fériées
+_h = (inputs.HS100_H.amount or 0.0) if inputs.HS100_H else 0.0
+_hourly = contract.wage / 173.33 if contract.wage else 0.0
+result = round(_hourly * _h * 2.0)</field>
+            <field name="note">HS nuits de repos &amp; nuits fériées : taux horaire × heures × 2,00.
+NON inclus dans la base abattement frais prof. 13 %.</field>
+        </record>
+
+        <!-- seq 70 : AUTRES — Autres éléments de salaire -->
+        <record id="rule_ne_autres" model="hr.salary.rule">
+            <field name="name">Autres éléments</field>
+            <field name="code">AUTRES</field>
+            <field name="sequence" eval="70"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="amount_python_compute">_i = inputs.AUTRES
+result = (_i.amount or 0.0) if _i else 0.0</field>
+            <field name="note">Autres éléments imposables (primes diverses). Inclus dans base abattement 13 %.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 2 : TOTAUX INTERMÉDIAIRES (TECH)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 80 : BRUT — Salaire brut total -->
+        <record id="rule_ne_brut" model="hr.salary.rule">
+            <field name="name">Salaire brut total NE</field>
+            <field name="code">BRUT</field>
+            <field name="sequence" eval="80"/>
+            <field name="category_id" ref="gvs_hr_payroll_ne.TECH_NE"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">result = categories.BASIC + categories.ALW + categories.ALW_NI_NE</field>
+            <field name="note">BRUT = BASIC + ALW (imposable) + ALW_NI_NE (alloc. fam. non imposable).</field>
+        </record>
+
+        <!-- seq 90 : CNSS_BASE — Base CNSS plafonnée (BRUT − ALLOC_FAM, max 500 000) -->
+        <record id="rule_ne_cnss_base" model="hr.salary.rule">
+            <field name="name">Base CNSS NE</field>
+            <field name="code">CNSS_BASE</field>
+            <field name="sequence" eval="90"/>
+            <field name="category_id" ref="gvs_hr_payroll_ne.TECH_NE"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute"># Base CNSS = BRUT - ALLOC_FAM, plafonnée à 500 000 FCFA
+result = min(BRUT - ALLOC_FAM, 500000.0)</field>
+            <field name="note">Base de cotisation CNSS = min(BRUT − Alloc. fam., 500 000 FCFA).</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 3 : COTISATIONS SALARIALES (DED)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 100 : CNSS_SAL — CNSS salarié (5,25 %) -->
+        <record id="rule_ne_cnss_sal" model="hr.salary.rule">
+            <field name="name">CNSS salarié</field>
+            <field name="code">CNSS_SAL</field>
+            <field name="sequence" eval="100"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">result = -CNSS_BASE
+result_rate = 5.25</field>
+            <field name="note">CNSS part salariale 5,25 % × CNSS_BASE (plafonné 500 000 FCFA).</field>
+        </record>
+
+        <!-- seq 110 : ABAT_PROF — Abattement frais professionnels 13 % -->
+        <record id="rule_ne_abat_prof" model="hr.salary.rule">
+            <field name="name">Abattement frais prof. 13%</field>
+            <field name="code">ABAT_PROF</field>
+            <field name="sequence" eval="110"/>
+            <field name="category_id" ref="gvs_hr_payroll_ne.TECH_NE"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute"># Abattement 13 % sur : SB + HS35 + HS50 + SURSAL + PR_ANC + AUTRES - CNSS_SAL (positif)
+# CNSS_SAL étant négatif dans Odoo : base + CNSS_SAL = base - CNSS_positif
+_base = SB + HS35 + HS50 + SURSAL + PR_ANC + AUTRES + CNSS_SAL
+result = round(_base * 0.13)</field>
+            <field name="note">CGI NE : abattement 13 % sur (SB + HS35 + HS50 + SURSAL + PR_ANC + AUTRES − CNSS sal).
+HS25 et HS100 exclus de cette base (cf. formule Excel officielle).</field>
+        </record>
+
+        <!-- seq 115 : ABAT_EXPAT — Abattement frais expatrié 17 % (optionnel) -->
+        <record id="rule_ne_abat_expat" model="hr.salary.rule">
+            <field name="name">Abattement frais expatrié 17%</field>
+            <field name="code">ABAT_EXPAT</field>
+            <field name="sequence" eval="115"/>
+            <field name="category_id" ref="gvs_hr_payroll_ne.TECH_NE"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute"># Abattement expatrié 17 % — activé si IS_EXPAT = 1 dans les entrées
+_expat = (inputs.IS_EXPAT.amount or 0.0) if inputs.IS_EXPAT else 0.0
+if _expat > 0:
+    _base = SB + HS35 + HS50 + SURSAL + PR_ANC + AUTRES + CNSS_SAL
+    result = round(_base * 0.17)
+else:
+    result = 0.0</field>
+            <field name="note">CGI NE : abattement supplémentaire 17 % pour les expatriés.
+Activé en mettant IS_EXPAT = 1 dans les entrées (Other Inputs).</field>
+        </record>
+
+        <!-- seq 120 : BASE_ITS — Base ITS arrondie -->
+        <record id="rule_ne_base_its" model="hr.salary.rule">
+            <field name="name">Base ITS arrondie NE</field>
+            <field name="code">BASE_ITS</field>
+            <field name="sequence" eval="120"/>
+            <field name="category_id" ref="gvs_hr_payroll_ne.TECH_NE"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute"># BASE_ITS = BRUT - CNSS_sal - Abat. prof - Abat. expat - Alloc. fam
+# CNSS_SAL étant négatif : BRUT + CNSS_SAL = BRUT - CNSS_positif
+_raw = BRUT + CNSS_SAL - ABAT_PROF - ABAT_EXPAT - ALLOC_FAM
+result = int(_raw // 1000) * 1000</field>
+            <field name="note">Base ITS = BRUT − CNSS sal − Abat. prof − Abat. expat − Alloc. fam.
+Arrondie à la tranche de 1 000 FCFA inférieure (ROUNDDOWN ;-3).</field>
+        </record>
+
+        <!-- seq 130 : ITS — Impôt Unique sur Salaire (barème progressif + abattement famille) -->
+        <record id="rule_ne_its" model="hr.salary.rule">
+            <field name="name">ITS</field>
+            <field name="code">ITS</field>
+            <field name="sequence" eval="130"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute"># ITS Niger — barème progressif avec abattement charges de famille
+# Abattement : 0 charge=0%, 1=10%, 2=15%, 3=20%, 4=25%, 5+=30%
+_i_ch = inputs.NB_CHARGES
+_n = int((_i_ch.amount or 0) if _i_ch else 0)
+if _n &lt;= 0:
+    _pct = 0.0
+elif _n == 1:
+    _pct = 0.10
+elif _n == 2:
+    _pct = 0.15
+elif _n == 3:
+    _pct = 0.20
+elif _n == 4:
+    _pct = 0.25
+else:
+    _pct = 0.30
+_x = BASE_ITS * (1.0 - _pct)
+_its = (max(0.0, (_x - 1000000.0)) * 0.35
+      + min(102000.0, max(0.0, (_x - 700000.0)) * 0.34)
+      + min(96000.0,  max(0.0, (_x - 400000.0)) * 0.32)
+      + min(30000.0,  max(0.0, (_x - 300000.0)) * 0.30)
+      + min(37500.0,  max(0.0, (_x - 150000.0)) * 0.25)
+      + min(6500.0,   max(0.0, (_x - 100000.0)) * 0.13)
+      + min(3000.0,   max(0.0, (_x - 50000.0))  * 0.06)
+      + min(500.0,    max(0.0, (_x - 25000.0))  * 0.02)
+      + min(250.0,    max(0.0, _x)               * 0.01))
+result = -round(_its)</field>
+            <field name="note">ITS Niger — barème IUS progressif (CGI NE).
+Abattement famille calculé depuis NB_CHARGES (Other Inputs).
+Barème : 1%[0-25k] ; 2%[25k-50k] ; 6%[50k-100k] ; 13%[100k-150k] ;
+         25%[150k-300k] ; 30%[300k-400k] ; 32%[400k-700k] ;
+         34%[700k-1M] ; 35%[>1M].</field>
+        </record>
+
+        <!-- seq 140 : ACOMPTE — Acompte sur salaire -->
+        <record id="rule_ne_acompte" model="hr.salary.rule">
+            <field name="name">Acompte sur salaire</field>
+            <field name="code">ACOMPTE</field>
+            <field name="sequence" eval="140"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">_i = inputs.ACOMPTE
+result = -((_i.amount or 0.0) if _i else 0.0)</field>
+            <field name="note">Acompte ou avance sur salaire. Retenu sur le net.</field>
+        </record>
+
+        <!-- seq 145 : PRET — Prêt à court et moyen terme -->
+        <record id="rule_ne_pret" model="hr.salary.rule">
+            <field name="name">Prêt salarié</field>
+            <field name="code">PRET</field>
+            <field name="sequence" eval="145"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">_i = inputs.PRET
+result = -((_i.amount or 0.0) if _i else 0.0)</field>
+            <field name="note">Remboursement de prêt à court et moyen terme.</field>
+        </record>
+
+        <!-- seq 148 : RET_SAL — Retenue sur salaire (trop perçu) -->
+        <record id="rule_ne_ret_sal" model="hr.salary.rule">
+            <field name="name">Retenue sur salaire</field>
+            <field name="code">RET_SAL</field>
+            <field name="sequence" eval="148"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">_i = inputs.RET_SAL
+result = -((_i.amount or 0.0) if _i else 0.0)</field>
+            <field name="note">Retenue sur salaire pour trop perçu.</field>
+        </record>
+
+        <!-- seq 150 : TOT_RET_SAL — Total retenues salariales (TECH) -->
+        <record id="rule_ne_tot_ret_sal" model="hr.salary.rule">
+            <field name="name">Total retenues salariales NE</field>
+            <field name="code">TOT_RET_SAL</field>
+            <field name="sequence" eval="150"/>
+            <field name="category_id" ref="gvs_hr_payroll_ne.TECH_NE"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">result = categories.DED</field>
+            <field name="note">Somme des retenues salariales (CNSS + ITS + ACOMPTE + PRET + RET_SAL).</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 4 : NET À PAYER
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 200 : NET — Net à payer (avant FSSP) -->
+        <record id="rule_ne_net" model="hr.salary.rule">
+            <field name="name">Net à payer</field>
+            <field name="code">NET</field>
+            <field name="sequence" eval="200"/>
+            <field name="category_id" ref="om_hr_payroll.NET"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">result = BRUT + categories.DED</field>
+            <field name="note">NET = BRUT + retenues salariales (négatives) = BRUT − CNSS − ITS − Acompte − Prêt − Ret.sal.</field>
+        </record>
+
+        <!-- seq 205 : FSSP — Retenue FSSP (1 % du NET) -->
+        <record id="rule_ne_fssp" model="hr.salary.rule">
+            <field name="name">Retenue FSSP</field>
+            <field name="code">FSSP</field>
+            <field name="sequence" eval="205"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">result = -round(NET * 0.01)</field>
+            <field name="note">Fonds de Sécurité Sociale Privé : 1 % du NET salarial.
+Calculé après NET (seq 200) pour éviter la dépendance circulaire.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 5 : CHARGES PATRONALES (COMP)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 210 : CNSS_PAT — CNSS patronal (16,4 %) -->
+        <record id="rule_ne_cnss_pat" model="hr.salary.rule">
+            <field name="name">CNSS patronal</field>
+            <field name="code">CNSS_PAT</field>
+            <field name="sequence" eval="210"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">result = CNSS_BASE
+result_rate = 16.4</field>
+            <field name="note">CNSS part patronale 16,4 % × CNSS_BASE (toutes branches confondues).</field>
+        </record>
+
+        <!-- seq 220 : ANPE — Contribution ANPE patronal (1 %) -->
+        <record id="rule_ne_anpe" model="hr.salary.rule">
+            <field name="name">ANPE patronal</field>
+            <field name="code">ANPE</field>
+            <field name="sequence" eval="220"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">result = CNSS_BASE
+result_rate = 1.0</field>
+            <field name="note">Contribution ANPE (Agence Nationale pour l'Emploi) — part patronale 1 % × CNSS_BASE.</field>
+        </record>
+
+        <!-- seq 240 : TOT_PAT — Total charges patronales -->
+        <record id="rule_ne_tot_pat" model="hr.salary.rule">
+            <field name="name">Total charges patronales NE</field>
+            <field name="code">TOT_PAT</field>
+            <field name="sequence" eval="240"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ne"/>
+            <field name="amount_python_compute">result = CNSS_PAT + ANPE</field>
+            <field name="note">Total charges patronales = CNSS_PAT + ANPE.</field>
+        </record>
+
+    </data>
+</odoo>

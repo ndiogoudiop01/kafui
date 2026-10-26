@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	
+    <record id="BASIC" model="hr.salary.rule.category">
+        <field name="name">Salaire de base</field>
+        <field name="code">BASE</field>
+        <field name="parent_id" eval="False"/>
+    </record>  
+
+	<record id="TOTAL" model="hr.salary.rule.category">
+        <field name="name">Cout total pour l'entreprise</field>
+        <field name="code">TOTAL</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+ 	
+	  <record id="NET" model="hr.salary.rule.category">
+        <field name="name">Salaire Net</field>
+        <field name="code">NET</field>
+        <field name="parent_id" eval="False"/>
+    </record> 
+	
+	<record id="BASEP" model="hr.salary.rule.category">
+        <field name="name">pourcentage BRUT (absence considérée)</field>
+        <field name="code">BASEP</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+	<record id="WDAYS" model="hr.salary.rule.category">
+        <field name="name">Jours travaillés</field>
+        <field name="code">WDAYS</field>
+        <field name="parent_id" eval="False"/>
+    </record>	
+	
+	<record id="WHOURS" model="hr.salary.rule.category">
+        <field name="name">Heures travaillées</field>
+        <field name="code">WHOURS</field>
+        <field name="parent_id" eval="False"/>
+    </record>	
+	
+<record id="BRUT1" model="hr.salary.rule.category">
+        <field name="name">Salaire Brut avant</field>
+        <field name="code">BRUT1</field>
+        <field name="parent_id" eval="False"/>
+    </record>  
+	
+     <record id="BRUT" model="hr.salary.rule.category">
+        <field name="name">Salaire soumis à la CSS et IPRES</field>
+        <field name="code">BRUT</field>
+        <field name="parent_id" eval="False"/>
+    </record>  
+	
+    <record id="hr_payroll.GROSS" model="hr.salary.rule.category">
+        <field name="name">Brut soumis à la CSS et IPRES</field>
+        <field name="code">BRU</field>
+        <field name="parent_id" eval="False"/>
+    </record> 	 
+
+    <record id="ALW" model="hr.salary.rule.category">
+        <field name="name">Primes non éxonérées</field>
+        <field name="code">ALW</field>
+        <field name="parent_id" eval="False"/>
+    </record> 
+
+	<record id="INDMNT" model="hr.salary.rule.category">
+        <field name="name">Indemnités éxonérées</field>
+        <field name="code">INDMNT</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+
+	<record id="GRATIF" model="hr.salary.rule.category">
+        <field name="name">Gratification sociales</field>
+        <field name="code">GRATIF</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+
+
+	
+	<record id="TPRIMENE" model="hr.salary.rule.category">
+        <field name="name">Total primes non éxonérées</field>
+        <field name="code">TPRIMENE</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+		<record id="TINDMNT" model="hr.salary.rule.category">
+        <field name="name">Total indemnités exonérées</field>
+        <field name="code">TINDMNT</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+
+    <record id="NEWD" model="hr.salary.rule.category">
+        <field name="name">Jours de travail</field>
+        <field name="code">NEWD</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+
+    <record id="new_hours" model="hr.salary.rule.category">
+        <field name="name">New hours</field>
+        <field name="code">NEWH</field>
+        <field name="parent_id" eval="False"/>
+    </record>	
+
+	<record id="CNG" model="hr.salary.rule.category">
+        <field name="name">Congés/Maladies</field>
+        <field name="code">CNG</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+	<record id="HS" model="hr.salary.rule.category">
+        <field name="name">Heures Sup</field>
+        <field name="code">HS</field>
+        <field name="parent_id" eval="False"/>
+    </record>	
+	
+	
+	<record id="ANC" model="hr.salary.rule.category">
+        <field name="name">Ancienneté</field>
+        <field name="code">ANC</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+
+	
+
+	
+	<record id="C_IMP" model="hr.salary.rule.category">
+        <field name="name">Revenu imposable mensuel</field>
+        <field name="code">C_IMP</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+	<record id="TDED" model="hr.salary.rule.category">
+        <field name="name">Total déductions</field>
+        <field name="code">TDED</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+
+	<record id="ABATIR" model="hr.salary.rule.category">
+        <field name="name">Abbatement annuel 30%</field>
+        <field name="code">ABATIR</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+	<record id="C_IMPDED" model="hr.salary.rule.category">
+		<field name="name">Revenu Imposable annuel après abbatement</field>
+		<field name="code">C_IMPDED</field>
+		<field name="parent_id" eval="False"/>
+    </record>
+	
+    <record id="RETENUES" model="hr.salary.rule.category">
+        <field name="name">Total des Retenues</field>
+        <field name="code">RETENUES</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+	<record id="SALC" model="hr.salary.rule.category">
+        <field name="name">Cotisations sociales Salariales</field>
+        <field name="code">SALC</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+
+     <record id="COMP" model="hr.salary.rule.category">
+        <field name="name">Cotisations Patronales</field>
+        <field name="code">COMP</field>
+        <field name="parent_id" eval="False"/>
+    </record> 
+
+	
+	
+	<record id="hr_payroll_DED" model="hr.salary.rule.category">
+        <field name="name">Déductions</field>
+        <field name="code">DED</field>
+        <field name="parent_id" eval="False"/>
+    </record> 
+	
+	 <record id="DEDIRPP" model="hr.salary.rule.category">
+        <field name="name">Déduction d'impôt</field>
+        <field name="code">DEDIRPP</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+
+
+    <record id="AlSTG" model="hr.salary.rule.category">
+        <field name="name">Allocation de stage</field>
+        <field name="code">AlSTG</field>
+    </record>
+    <record id="ILIC" model="hr.salary.rule.category">
+        <field name="name">Indémnité de licenciement</field>
+        <field name="code">ILIC</field>
+    </record>
+
+
+	
+	<record id="TRANCHEIMPO" model="hr.salary.rule.category">
+		<field name="name">Tranche d'impôt progressive</field>
+		<field name="code">TRANCHEIMPO</field>
+		<field name="parent_id" eval="False"/>
+	</record>
+	
+		<record id="IRAR" model="hr.salary.rule.category">
+        <field name="name">IR avant Réductions</field>
+        <field name="code">IRAR</field>
+		<field name="parent_id" eval="False"/>
+		
+	</record>
+	
+     <record id="DEDIRPPS" model="hr.salary.rule.category">
+        <field name="name">Total Déductions d'impôt</field>
+        <field name="code">DEDIRPPS</field>
+		<field name="parent_id" eval="hr_payroll_DED"/>
+	</record>
+	
+    <record id="PREV" model="hr.salary.rule.category">
+        <field name="name">Cotisations Prévoyances Patronales</field>
+        <field name="code">PREV</field>
+        <field name="parent_id" eval="COMP"/>
+    </record> 
+
+ 
+   <record id="REMMUT" model="hr.salary.rule.category">
+        <field name="name">Remboursement  Mutuelle</field>
+        <field name="code">REMMUT</field>
+        <field name="parent_id" eval="False"/>
+	  </record>
+
+	    	<record id="THOR" model="hr.salary.rule.category">
+        <field name="name">Taux horaire</field>
+        <field name="code">THOR</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+
+
+	<record id="TJOUR" model="hr.salary.rule.category">
+        <field name="name">Taux journalier</field>
+        <field name="code">TJOUR</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+
+
+
+	   <record id="AVSAL" model="hr.salary.rule.category">
+        <field name="name">Avance sur Salaire</field>
+        <field name="code">AVSAL</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+    <record id="RETN" model="hr.salary.rule.category">
+        <field name="name">Autres Retenues</field>
+        <field name="code">RETN</field>
+        <field name="parent_id" eval="False"/>
+    </record>	
+	
+    <record id="TRET" model="hr.salary.rule.category">
+        <field name="name">Total des Retenues</field>
+        <field name="code">TRET</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+
+	
+   <record id="other_totals" model="hr.salary.rule.category">
+        <field name="name">Autres totaux</field>
+        <field name="code">O_TOTALS</field>
+        <field name="parent_id" eval="False"/>
+    </record> 
+
+	    <record id="INPSPAT" model="hr.salary.rule.category">
+        <field name="name">Cotisations sociales patronales</field>
+        <field name="code">INPSPAT</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+
+	    <record id="PRNATURE" model="hr.salary.rule.category">
+        <field name="name">Avantages en nature</field>
+        <field name="code">PRNATURE</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+		<record id="CHAFAMIL" model="hr.salary.rule.category">
+        <field name="name">Charges de familles</field>
+        <field name="code">CHAFAMIL</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+		 <record id="IR" model="hr.salary.rule.category">
+        <field name="name">Impôts sur le revenu</field>
+        <field name="code">IR</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+		 <record id="IRPP" model="hr.salary.rule.category">
+        <field name="name">IRPP mensuel</field>
+        <field name="code">IRPP</field>
+        <field name="parent_id" eval="False"/>
+    </record>	
+	
+
+
+		 <record id="NPARTS" model="hr.salary.rule.category">
+        <field name="name">Nombre de parts</field>
+        <field name="code">NPARTS</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+
+	<record id="REDUCT" model="hr.salary.rule.category">
+        <field name="name">Réductions</field>
+        <field name="code">REDUCT</field>
+        <field name="parent_id" eval="False"/>
+    </record>	
+	
+			 <record id="TRIMF" model="hr.salary.rule.category">
+        <field name="name">Taxe Représentative de l'Impôt du Minimum Fiscal(TRIMF)</field>
+        <field name="code">TRIMF</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+	
+
+   <record id="hr_cimr_register" model="res.partner">
+        <field name="name">Organisme de retraite complémentaire</field>
+    </record>
+
+    <record id="hr_taxe_register" model="res.partner">
+        <field name="name">Direction des impôts </field>
+    </record>
+
+    <record id="hr_prevoyance_register" model="res.partner">
+        <field name="name">Organisme de Mutuelle et prévoyance</field>
+    </record>
+	
+   <record id="hr_cnss_register" model="res.partner">
+        <field name="name">Caisses de Sécurité Sociale</field>
+    </record>	
+
+</odoo>

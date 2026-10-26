@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            Entrées de paie (hr.rule.input) — Burkina Faso
+
+            hr.rule.input est lié à hr.salary.rule (input_ids).
+            Quand un bulletin est créé, get_inputs() pré-remplit
+            automatiquement l'onglet "Autres entrées" avec ces lignes.
+            Le gestionnaire de paie saisit ensuite les montants/heures.
+
+            IMPORTANT : le champ 'code' doit correspondre exactement
+            au code utilisé dans amount_python_compute (inputs.CODE).
+        -->
+
+        <!-- ── Jours travaillés ── -->
+        <record id="input_bf_nb_jours" model="hr.rule.input">
+            <field name="name">Nombre de jours travaillés (défaut : 30)</field>
+            <field name="code">NB_JOURS</field>
+            <field name="input_id" ref="rule_bf_nb_jours"/>
+        </record>
+
+        <!-- ── Sursalaire ── -->
+        <record id="input_bf_sursal" model="hr.rule.input">
+            <field name="name">Sursalaire</field>
+            <field name="code">SURSAL</field>
+            <field name="input_id" ref="rule_bf_sursal"/>
+        </record>
+
+        <!-- ── Heures supplémentaires ── -->
+        <record id="input_bf_hs10_h" model="hr.rule.input">
+            <field name="name">HS diurnes semaine (+10 %) — Nb d'heures</field>
+            <field name="code">HS10_H</field>
+            <field name="input_id" ref="rule_bf_hs20"/>
+        </record>
+
+        <record id="input_bf_hs35_h" model="hr.rule.input">
+            <field name="name">HS de nuit semaine (+35 %) — Nb d'heures</field>
+            <field name="code">HS35_H</field>
+            <field name="input_id" ref="rule_bf_hs40"/>
+        </record>
+
+        <record id="input_bf_hs50_h" model="hr.rule.input">
+            <field name="name">HS dimanche diurnes (+50 %) — Nb d'heures</field>
+            <field name="code">HS50_H</field>
+            <field name="input_id" ref="rule_bf_hs50"/>
+        </record>
+
+        <record id="input_bf_hs75_h" model="hr.rule.input">
+            <field name="name">HS dimanche nuit (+75 %) — Nb d'heures</field>
+            <field name="code">HS75_H</field>
+            <field name="input_id" ref="rule_bf_hs75"/>
+        </record>
+
+        <record id="input_bf_hs100_h" model="hr.rule.input">
+            <field name="name">HS jours fériés (+100 %) — Nb d'heures</field>
+            <field name="code">HS100_H</field>
+            <field name="input_id" ref="rule_bf_hs100"/>
+        </record>
+
+        <!-- ── Indemnités ── -->
+        <record id="input_bf_ind_log" model="hr.rule.input">
+            <field name="name">Indemnité de logement</field>
+            <field name="code">IND_LOG</field>
+            <field name="input_id" ref="rule_bf_ind_log"/>
+        </record>
+
+        <record id="input_bf_ind_trsp" model="hr.rule.input">
+            <field name="name">Indemnité de transport</field>
+            <field name="code">IND_TRSP</field>
+            <field name="input_id" ref="rule_bf_ind_trsp"/>
+        </record>
+
+        <record id="input_bf_ind_fonct" model="hr.rule.input">
+            <field name="name">Indemnité de fonction (exo. IUTS)</field>
+            <field name="code">IND_FONCT</field>
+            <field name="input_id" ref="rule_bf_ind_fonct"/>
+        </record>
+
+        <!-- ── Déductions ── -->
+        <record id="input_bf_acompte" model="hr.rule.input">
+            <field name="name">Acompte / Avance sur salaire</field>
+            <field name="code">ACOMPTE</field>
+            <field name="input_id" ref="rule_bf_acompte"/>
+        </record>
+
+        <record id="input_bf_dette" model="hr.rule.input">
+            <field name="name">Remboursement de dettes / prêt</field>
+            <field name="code">DETTE</field>
+            <field name="input_id" ref="rule_bf_dette"/>
+        </record>
+
+    </data>
+</odoo>

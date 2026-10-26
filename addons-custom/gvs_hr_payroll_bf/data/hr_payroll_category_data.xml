@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            Catégories spécifiques à la paie Burkina Faso.
+
+            TECH_BF : valeurs intermédiaires/calcul, masquées du bulletin
+                      (CNSS_BASE, BASE_IUTS, etc.)
+
+            ALW_NI_BF : indemnités non imposables IUTS mais comprises dans
+                        la rémunération brute (logement, transport, fonction).
+                        Exclues de la base IUTS, mais incluses dans le BRUT
+                        total et dans la base CNSS.
+
+            country_id = BF : invisible depuis les sociétés CI, TG et autres pays.
+        -->
+
+        <record id="TECH_BF" model="hr.salary.rule.category">
+            <field name="name">Technique BF</field>
+            <field name="code">TECH_BF</field>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+        </record>
+
+        <record id="ALW_NI_BF" model="hr.salary.rule.category">
+            <field name="name">Allocation non imposable BF</field>
+            <field name="code">ALW_NI_BF</field>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+        </record>
+
+    </data>
+</odoo>

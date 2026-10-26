@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+
+	<record id="mode_portrait" model="report.paperformat">
+	 <field name="name">format A4 paysage</field>
+	<field name="default" eval="True"/>
+	<field name="format">A4</field>
+	<field name="orientation">Portrait</field>
+    <field name="margin_top">0</field>
+    <field name="margin_bottom">1</field>
+    <field name="margin_left">2</field>
+    <field name="margin_right">1</field>
+    <field name="header_spacing">0</field>	
+	<field name="header_line" eval="False"/>
+
+		</record>
+
+		     <record id="action_report_paie_dec" model="ir.actions.report">
+            <field name="name">Imprimer le tableau décompte</field>
+            <field name="model">hr.paie</field>
+            <field name="report_type">qweb-html</field>
+            <field name="report_name">hr_payroll_seng.report_paie_dec</field>
+            <field name="report_file">hr_payroll_seng.report_paie_dec</field>
+			 <field name="paperformat_id" ref="hr_payroll_seng.paperformat_bulletin" />
+			 <field name="print_report_name">'Décompte Mois - %s  - %s'% (object.month or '-', object.date_from.year )</field>
+            <field name="binding_model_id" ref="model_hr_paie"/>
+            <field name="binding_type">report</field>  
+			  
+        </record> 	
+	
+	
+
+	
+	<template id="report_paie_dec">
+	    	    <t t-call="web.html_container">
+				<t t-foreach="docs" t-as="o">
+	    	     <t t-call="web.basic_layout">
+				   
+ 
+
+ 
+ 
+ <div class="page"> 		
+	
+ <style>
+
+.main-data {
+width: 100%;
+position: absolute;
+top: 300px;
+font-size: 80%;
+}
+
+.titre {
+width: 100%;
+position: absolute;
+font-size: 110%;
+ font-family: Arial, Helvetica, sans-serif;
+
+top: 70px;
+left: 40px;
+}
+
+.title {
+width: 50%;
+position: absolute;
+font-size: 90%;
+ font-family: Arial, Helvetica, sans-serif;
+
+
+}
+
+.box {
+width: 80%;
+position: absolute;
+
+left: 100px;
+
+}
+
+
+</style>
+
+ <div class="titre">
+    <p><strong>Société:</strong><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><span t-esc="o.company_id.name"></span></p>
+ 
+
+  <p><strong>Décompte monétaire (Espèce seulement) :</strong><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><span t-esc="o.month"></span>/<span t-esc="o.year"></span></p>
+
+  <p><strong>Période</strong><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]>  <strong>Du </strong> <span t-esc="o.date_from" t-options='{"widget": "date"}'></span><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]> <strong>Au </strong><span t-esc="o.date_to" t-options='{"widget": "date"}'></span></p>
+
+
+  <p> <strong>Total net:</strong><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]> <span t-esc="'%.0f'% o.net_total_espece"></span><![CDATA[&nbsp;]]></p>
+  
+
+
+
+ </div>
+ 
+ <br/> <br/>
+ <div class="main-data">
+
+
+<table class="table table-bordered" >
+    <thead>
+		<tr height="20" style="background-color:#EBEBEB !important">
+		<th colspan="4">Employé</th><th colspan="2">Net en espèce</th><th colspan="2">10000</th><th colspan="2">5000</th><th colspan="2">2000</th><th colspan="2">1000</th><th colspan="2">500</th><th colspan="2">100</th><th colspan="2">50</th>
+		</tr>
+    </thead>
+	<tbody>
+	
+		<tr t-foreach="o.paie_lines" t-as="line">
+		<t t-if="line.modepaiement =='Espece'">
+		<td colspan="4"><span t-esc="line.employee_id.name"></span></td><td colspan="2"><span  t-esc="'%.0f'% line.net"></span></td><td colspan="2"><span  t-esc="line.mt_10000"></span></td><td colspan="2"><span t-esc="line.mt_5000"></span></td><td colspan="2"><span  t-esc="line.mt_2000"></span></td><td colspan="2"><span t-esc="line.mt_1000"></span></td><td colspan="2"><span t-esc="line.mt_500"></span></td><td colspan="2"><span t-esc="line.mt_100"></span></td><td colspan="2"><span t-esc="line.mt_50"></span></td>
+		</t>
+		</tr>
+		
+	</tbody>
+    <tfoot>
+		<tr style="background-color:#EBEBEB !important" >
+		<th colspan="4">Total</th>
+		<td colspan="2"><span t-esc="'%.0f'% o.net_total_espece"></span></td>
+		<td colspan="2"><span t-esc="o.total_10000"></span></td>
+		<td colspan="2"><span t-esc="o.total_5000"></span></td>
+		<td colspan="2"><span t-esc="o.total_2000"></span></td>
+		<td colspan="2"><span t-esc="o.total_1000"></span></td>
+		<td colspan="2"><span t-esc="o.total_500"></span></td>
+		<td colspan="2"><span t-esc="o.total_100"></span></td>
+		<td colspan="2"><span t-esc="o.total_50"></span></td>
+		</tr>   
+    </tfoot>
+
+</table>
+
+ <br/><br/><br/><br/><br/>
+ <center>
+<div class="box">
+
+
+ <p style="font-size:18px;text-align:center;font-weight:bold;"><i class="fa fa-scissors" style="font-size:24px"></i>.....................................................................................................................</p>
+ <p style="font-size:24px;text-align:center;font-weight:bold;">Type et quantité de monnaie à prévoir pour la paie</p>
+
+<table  style="border: 1px solid black;width: 70%;">
+    
+   
+		<tr style="font-size:24px;font-weight:bold;background-color:#EBEBEB !important; border: 1px solid black " ><th colspan="2">Type de monnaie</th><th colspan="2" style="border: 1px solid black;text-align:center">Quantité</th><th colspan="2" style="border: 1px solid black;text-align:center">Montant </th></tr> 
+		<tr style="font-size:24px;font-weight:bold;border: 1px solid black"><th colspan="2">Monnaie de 10000</th><td colspan="2" style="border: 1px solid black;text-align:center"> <span t-esc="o.total_10000"></span></td><td colspan="2" style="border: 1px solid black;text-align:center"> <span t-esc="o.total_10000*10000"></span></td></tr> 
+		<tr style="font-size:24px;font-weight:bold ;border: 1px solid black"><th colspan="2">Monnaie de 5000 </th><td colspan="2" style="border: 1px solid black;text-align:center"><span t-esc="o.total_5000"></span></td><td colspan="2" style="border: 1px solid black;text-align:center"> <span t-esc="o.total_5000*5000"></span></td></tr> 
+		<tr style="font-size:24px;font-weight:bold ;border: 1px solid black"><th colspan="2">Monnaie de 2000</th><td colspan="2" style="border: 1px solid black;text-align:center"><span t-esc="o.total_2000"></span></td><td colspan="2" style="border: 1px solid black;text-align:center"> <span t-esc="o.total_2000*2000"></span></td></tr> 
+		<tr style="font-size:24px;font-weight:bold ;border: 1px solid black"><th colspan="2">Monnaie de 1000</th><td colspan="2" style="border: 1px solid black;text-align:center"><span t-esc="o.total_1000"></span></td><td colspan="2" style="border: 1px solid black;text-align:center"> <span t-esc="o.total_1000*1000"></span></td></tr> 
+		<tr style="font-size:24px;font-weight:bold ;border: 1px solid black"><th colspan="2">Monnaie de 500</th><td colspan="2" style="border: 1px solid black;text-align:center"><span t-esc="o.total_500"></span></td><td colspan="2" style="border: 1px solid black;text-align:center"> <span t-esc="o.total_500*500"></span></td></tr>  
+		<tr style="font-size:24px;font-weight:bold ;border: 1px solid black"><th colspan="2">Monnaie de 100</th><td colspan="2" style="border: 1px solid black;text-align:center"><span t-esc="o.total_100"></span></td><td colspan="2" style="border: 1px solid black;text-align:center"> <span t-esc="o.total_100*100"></span></td></tr> 
+		<tr style="font-size:24px;font-weight:bold ;border: 1px solid black"><th colspan="2">Monnaie de 50</th><td colspan="2" style="border: 1px solid black;text-align:center"><span t-esc="o.total_50"></span></td><td colspan="2" style="border: 1px solid black;text-align:center"> <span t-esc="o.total_50*50"></span></td></tr> 
+		 
+   
+
+</table>
+</div>
+</center>
+
+</div>
+	
+</div>	
+
+
+
+
+</t>
+</t>
+</t>
+	   
+	</template>
+</odoo>

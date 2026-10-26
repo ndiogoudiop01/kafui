@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Vues hr.employee.bonus ──────────────────────────────────────── -->
+
+    <record id="employee_bonus_form" model="ir.ui.view">
+        <field name="name">hr.employee.bonus.form</field>
+        <field name="model">hr.employee.bonus</field>
+        <field name="arch" type="xml">
+            <form string="Élément variable">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="employee_id"/>
+                            <field name="salary_rule"/>
+                            <field name="amount"/>
+                            <field name="state" readonly="1"/>
+                            <field name="company_id"/>
+                            <field name="version_id"/>
+                        </group>
+                        <group string="Durée">
+                            <!-- Boutons radio pour le type de durée -->
+                            <field name="duration_type" widget="radio" nolabel="1" colspan="2"/>
+
+                            <!-- Période : date_from (toujours affiché) + date_to si limité -->
+                            <label for="date_from" string="Période"/>
+                            <div>
+                                <field name="date_from"
+                                       class="oe_inline"
+                                       readonly="duration_type == 'one_time'"/>
+                                <span class="oe_inline mx-1"
+                                      invisible="duration_type != 'limited'"> — </span>
+                                <field name="date_to"
+                                       class="oe_inline"
+                                       invisible="duration_type != 'limited'"
+                                       required="duration_type == 'limited'"/>
+                            </div>
+
+                            <!-- Note facultative -->
+                            <field name="note"
+                                   placeholder="Raison ou référence facultative…"
+                                   colspan="2"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="employee_bonus_list" model="ir.ui.view">
+        <field name="name">hr.employee.bonus.list</field>
+        <field name="model">hr.employee.bonus</field>
+        <field name="arch" type="xml">
+            <list string="Éléments variables">
+                <field name="salary_rule"/>
+                <field name="duration_type"
+                       widget="badge"
+                       decoration-info="duration_type == 'unlimited'"
+                       decoration-warning="duration_type == 'limited'"
+                       decoration-muted="duration_type == 'one_time'"/>
+                <field name="date_from"/>
+                <field name="date_to" optional="show"/>
+                <field name="amount"/>
+                <field name="state"
+                       widget="badge"
+                       decoration-success="state == 'active'"
+                       decoration-danger="state == 'expired'"/>
+                <field name="note" optional="hide"/>
+                <field name="employee_id" optional="show"/>
+                <field name="version_id" optional="hide"/>
+                <field name="company_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="employee_bonus_search" model="ir.ui.view">
+        <field name="name">hr.employee.bonus.search</field>
+        <field name="model">hr.employee.bonus</field>
+        <field name="arch" type="xml">
+            <search string="Recherche éléments variables">
+                <field name="employee_id" string="Employé"/>
+                <field name="salary_rule" string="Rubrique"/>
+                <filter string="Actifs"     name="active"    domain="[('state','=','active')]"/>
+                <filter string="Illimités"  name="unlimited" domain="[('duration_type','=','unlimited')]"/>
+                <group>
+                    <filter string="Employé"  name="by_employee"    context="{'group_by':'employee_id'}"/>
+                    <filter string="Rubrique" name="by_salary_rule" context="{'group_by':'salary_rule'}"/>
+                    <filter string="Durée"    name="by_duration"    context="{'group_by':'duration_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="element_variable_action" model="ir.actions.act_window">
+        <field name="name">Éléments variables</field>
+        <field name="res_model">hr.employee.bonus</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="element_variable_menu"
+              parent="om_hr_payroll.menu_hr_payroll_configuration"
+              action="element_variable_action"
+              sequence="19"/>
+
+    <!-- ── Extension formulaire contrat (hr.version) ─────────────────── -->
+
+    <record id="hr_version_bonus_form_inherit" model="ir.ui.view">
+        <field name="name">hr.version.bonus.form.inherit</field>
+        <field name="model">hr.version</field>
+        <field name="inherit_id" ref="om_hr_payroll.hr_contract_form_inherit"/>
+        <field name="arch" type="xml">
+
+            <!-- Onglet Éléments variables après l'onglet "Informations" -->
+            <xpath expr="//page[@name='information']" position="after">
+                <page name="bonus" string="Éléments variables">
+                    <field name="bonus"
+                           context="{'default_version_id': id,
+                                     'default_employee_id': employee_id}">
+                        <list editable="bottom" string="Éléments variables">
+                            <field name="salary_rule"/>
+                            <field name="duration_type"
+                                   widget="badge"
+                                   decoration-info="duration_type == 'unlimited'"
+                                   decoration-warning="duration_type == 'limited'"
+                                   decoration-muted="duration_type == 'one_time'"/>
+                            <field name="date_from"/>
+                            <field name="date_to" optional="show"/>
+                            <field name="amount"/>
+                            <field name="state"
+                                   widget="badge"
+                                   decoration-success="state == 'active'"
+                                   decoration-danger="state == 'expired'"
+                                   readonly="1"/>
+                            <field name="note" optional="hide"/>
+                        </list>
+                    </field>
+                    <group class="oe_subtotal_footer oe_right" colspan="2">
+                        <field name="total_bonus" widget="monetary"
+                               options="{'currency_field': 'currency_id'}"/>
+                    </group>
+                </page>
+            </xpath>
+
+            <!-- Champs communs : type contrat, motif, date ancienneté -->
+            <xpath expr="//field[@name='contract_date_end']" position="after">
+                <field name="typeContract"/>
+                <field name="motif"/>
+                <field name="dateAnciennete"/>
+                <!-- dateAnciennete n'est pas required : les employés importés/migrés
+                     peuvent ne pas l'avoir. Le fallback contract_date_start est utilisé
+                     automatiquement pour le calcul de la prime d'ancienneté. -->
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- ── Règle de sécurité : lignes de bulletin visibles par société ── -->
+    <!--
+        Cette règle restreint la LECTURE des lignes de bulletin aux sociétés
+        actives dans la barre de navigation (company_ids — multi-société).
+
+        IMPORTANT : utiliser company_ids (et non user.company_id) pour que le
+        filtre s'applique à la société ACTIVE et non à la société par défaut
+        du profil. Sans cela, un utilisateur qui switche vers TG Company mais
+        dont la société par défaut est différente ne verrait aucune ligne.
+
+        perm_create/perm_write = False : la création et l'écriture sont libres.
+        compute_sheet() crée les hr.payslip.line dans le contexte du bulletin
+        (société X) même si la session est sur une autre société — bloquer le
+        CREATE provoquerait une erreur d'accès et empêcherait le calcul.
+
+        perm_unlink = False : la suppression des anciennes lignes dans
+        compute_sheet() est gérée par la règle globale (company_ids) de
+        gvs_hr_payore_multi_company — pas besoin de la restreindre ici.
+    -->
+    <record id="hr_payslip_line_company_rule" model="ir.rule">
+        <field name="name">Lignes de bulletin — société</field>
+        <field name="model_id" ref="om_hr_payroll.model_hr_payslip_line"/>
+        <field eval="False" name="global"/>
+        <field name="domain_force">
+            ['|', ('company_id', '=', False),
+                  ('company_id', 'in', company_ids)]
+        </field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+</odoo>

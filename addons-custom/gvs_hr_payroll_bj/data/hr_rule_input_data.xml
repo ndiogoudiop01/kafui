@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            Entrées de paie (hr.rule.input) — Bénin
+
+            hr.rule.input est lié à hr.salary.rule (input_ids).
+            get_inputs() pré-remplit automatiquement l'onglet "Autres entrées"
+            lors de la création du bulletin. Le gestionnaire saisit les montants.
+
+            IMPORTANT : le champ 'code' correspond exactement à inputs.CODE
+            utilisé dans amount_python_compute.
+        -->
+
+        <!-- ── Jours ── -->
+        <record id="input_bj_nb_jours" model="hr.rule.input">
+            <field name="name">Nombre de jours travaillés (défaut : 30)</field>
+            <field name="code">NB_JOURS</field>
+            <field name="input_id" ref="rule_bj_nb_jours"/>
+        </record>
+
+        <!-- ── Éléments imposables ── -->
+        <record id="input_bj_sursal" model="hr.rule.input">
+            <field name="name">Sursalaire</field>
+            <field name="code">SURSAL</field>
+            <field name="input_id" ref="rule_bj_sursal"/>
+        </record>
+
+        <record id="input_bj_fr_com" model="hr.rule.input">
+            <field name="name">Frais de communication</field>
+            <field name="code">FR_COM</field>
+            <field name="input_id" ref="rule_bj_fr_com"/>
+        </record>
+
+        <record id="input_bj_conges" model="hr.rule.input">
+            <field name="name">Indemnité de congés</field>
+            <field name="code">CONGES</field>
+            <field name="input_id" ref="rule_bj_conges"/>
+        </record>
+
+        <!-- ── Éléments non imposables ── -->
+        <record id="input_bj_ind_fonct" model="hr.rule.input">
+            <field name="name">Indemnité de fonction (NI ITS)</field>
+            <field name="code">IND_FONCT</field>
+            <field name="input_id" ref="rule_bj_ind_fonct"/>
+        </record>
+
+        <record id="input_bj_ind_trans" model="hr.rule.input">
+            <field name="name">Indemnité de transport (NI ITS)</field>
+            <field name="code">IND_TRANS</field>
+            <field name="input_id" ref="rule_bj_ind_trans"/>
+        </record>
+
+        <!-- ── Déductions ── -->
+        <record id="input_bj_acompte" model="hr.rule.input">
+            <field name="name">Acompte / Avance sur salaire</field>
+            <field name="code">ACOMPTE</field>
+            <field name="input_id" ref="rule_bj_acompte"/>
+        </record>
+
+        <record id="input_bj_dette" model="hr.rule.input">
+            <field name="name">Remboursement de dettes / prêt</field>
+            <field name="code">DETTE</field>
+            <field name="input_id" ref="rule_bj_dette"/>
+        </record>
+
+        <record id="input_bj_srtb" model="hr.rule.input">
+            <field name="name">Prélèvement SRTB</field>
+            <field name="code">SRTB</field>
+            <field name="input_id" ref="rule_bj_srtb"/>
+        </record>
+
+    </data>
+</odoo>

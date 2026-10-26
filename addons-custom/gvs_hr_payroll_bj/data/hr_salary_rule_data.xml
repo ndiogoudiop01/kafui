@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            RÈGLES SALARIALES — Paie Bénin
+            Source : BJ_Fiche de paie.xlsx + Code du Travail BJ (Loi 98-004) + CGI Bénin
+
+            ── Convention om_hr_payroll ──
+            • localdict['result']      = montant Python de la règle
+            • localdict['result_rate'] = taux d'affichage
+              IMPORTANT : tot_rule = result × result_qty × result_rate / 100
+            • 'contract' = hr.version (wage, date_start, etc.)
+            • 'inputs.CODE' = BrowsableObject sur les entrées du bulletin.
+              Pattern sécurisé : _i = inputs.CODE ; val = (_i.amount or 0.0) if _i else 0.0
+
+            ── Logique CNSS BJ ──
+            Vieillesse   : salarié 3,6 % / patronal 6,4 %
+            Risques prof : salarié 0 %  / patronal 1 %
+            Presta. fam. : salarié 0 %  / patronal 9 %
+            VPS          : salarié 0 %  / patronal 4 %
+            (base = BRUT_IMP, pas de plafond identifié dans le fichier)
+
+            ── Logique ITS BJ ──
+            Barème mensuel progressif (CGI Bénin — formule Excel officielle validée) :
+               0 % → 0 – 60 000 FCFA
+              10 % → 60 001 – 150 000 FCFA
+              15 % → 150 001 – 250 000 FCFA
+              19 % → 250 001 – 500 000 FCFA
+              30 % → > 500 000 FCFA
+            Base arrondie à la tranche de 1 000 inférieure (ARRONDI.INF ;-3).
+
+            ── Prime d'ancienneté BJ ──
+            Loi 98-004, Art. 234 :
+            2 % à 2 ans d'ancienneté, +1 %/an, plafonné 25 % à 25 ans.
+
+            Toutes les règles : company_id=False, country_id=BJ.
+            Isolation : ir.rule dans gvs_hr_payroll_base cache ces règles aux autres pays.
+        -->
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 0 : TECHNIQUE (NB_JOURS)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 5 : NB_JOURS — Nombre de jours travaillés (TECH, affiché sur bulletin) -->
+        <record id="rule_bj_nb_jours" model="hr.salary.rule">
+            <field name="name">Jours travaillés</field>
+            <field name="code">NB_JOURS</field>
+            <field name="sequence" eval="5"/>
+            <field name="category_id" ref="gvs_hr_payroll_bj.TECH_BJ"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">_i = inputs.NB_JOURS
+if _i and _i.amount:
+    result = _i.amount
+else:
+    _wd = worked_days.WORK100
+    result = _wd.number_of_days if _wd else 30.0</field>
+            <field name="note">Priorité : 1) Other Input NB_JOURS (saisie manuelle exceptionnelle) si renseigné et non nul ;
+2) sinon, nombre de jours de l'onglet "Jours travaillés et entrées" (ligne WORK100). WORK100 est
+   calculé par get_worked_day_lines() sur une base calendaire de 30 jours (moins congés éventuels),
+   donc directement comparable à 30 ;
+3) sinon, 30 jours (mois complet BJ). SB est calculé au prorata wage × NB_JOURS / 30.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 1 : ÉLÉMENTS DU BRUT IMPOSABLE (BASIC + ALW)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 10 : SB — Salaire de base (prorata NB_JOURS / 30) -->
+        <record id="rule_bj_sb" model="hr.salary.rule">
+            <field name="name">Salaire de base</field>
+            <field name="code">SB</field>
+            <field name="sequence" eval="10"/>
+            <field name="category_id" ref="om_hr_payroll.BASIC"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">result = contract.wage * min(NB_JOURS, 30.0) / 30.0</field>
+            <field name="note">SB proraté = wage × NB_JOURS / 30. Mois complet (30j) = salaire plein. Si NB_JOURS = 0
+(absence totale), SB = 0 — ne PAS utiliser "NB_JOURS if NB_JOURS else 30.0" : 0 est une valeur valide
+(falsy en Python) qui serait sinon incorrectement remplacée par 30 (mois complet payé).</field>
+        </record>
+
+        <!-- seq 20 : PR_ANC — Prime d'ancienneté (auto depuis date_start) -->
+        <record id="rule_bj_pr_anc" model="hr.salary.rule">
+            <field name="name">Prime d'ancienneté</field>
+            <field name="code">PR_ANC</field>
+            <field name="sequence" eval="20"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">today = payslip.date_to
+start = contract.date_start
+if start and today:
+    years = today.year - start.year - ((today.month, today.day) &lt; (start.month, start.day))
+    years = max(years, 0)
+    # Code du Travail BJ — Loi 98-004, Art. 234 :
+    # 2 % à 2 ans, +1 %/an, plafond 25 % à 25 ans.
+    if years &gt;= 2:
+        rate = min(years, 25)
+    else:
+        rate = 0
+else:
+    rate = 0
+result = round(contract.wage * rate / 100.0)</field>
+            <field name="note">Loi 98-004 BJ, Art. 234 : 0 % si &lt; 2 ans ; 2 % à 2 ans ; +1 %/an ; plafond 25 %.
+result = wage × rate / 100 calculé directement (évite aléas de result_rate).</field>
+        </record>
+
+        <!-- seq 30 : SURSAL — Sursalaire (complément au salaire catégoriel) -->
+        <record id="rule_bj_sursal" model="hr.salary.rule">
+            <field name="name">Sursalaire</field>
+            <field name="code">SURSAL</field>
+            <field name="sequence" eval="30"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="amount_python_compute">_i = inputs.SURSAL
+result = (_i.amount or 0.0) if _i else 0.0</field>
+            <field name="note">Complément au salaire catégoriel minimum. Imposable ITS et CNSS.
+is_prorata=False : montant forfaitaire, pas proratisé par NB_JOURS.</field>
+        </record>
+
+        <!-- seq 40 : FR_COM — Frais de communication (imposable) -->
+        <record id="rule_bj_fr_com" model="hr.salary.rule">
+            <field name="name">Frais de communication</field>
+            <field name="code">FR_COM</field>
+            <field name="sequence" eval="40"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="amount_python_compute">_i = inputs.FR_COM
+result = (_i.amount or 0.0) if _i else 0.0</field>
+            <field name="note">Frais de communication (téléphonie, internet). Inclus dans le brut imposable ITS.
+is_prorata=False : montant forfaitaire mensuel, pas proratisé par WORK100.</field>
+        </record>
+
+        <!-- seq 50 : CONGES — Indemnité de congés (imposable) -->
+        <record id="rule_bj_conges" model="hr.salary.rule">
+            <field name="name">Indemnité de congés</field>
+            <field name="code">CONGES</field>
+            <field name="sequence" eval="50"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="amount_python_compute">_i = inputs.CONGES
+result = (_i.amount or 0.0) if _i else 0.0</field>
+            <field name="note">Indemnité de congés payés (imposable ITS et CNSS).
+is_prorata=False : montant forfaitaire, pas proratisé par NB_JOURS.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 2 : INDEMNITÉS NON IMPOSABLES (ALW_NI_BJ)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 80 : IND_FONCT — Indemnité de fonction (non imposable ITS) -->
+        <record id="rule_bj_ind_fonct" model="hr.salary.rule">
+            <field name="name">Indemnité de fonction</field>
+            <field name="code">IND_FONCT</field>
+            <field name="sequence" eval="80"/>
+            <field name="category_id" ref="gvs_hr_payroll_bj.ALW_NI_BJ"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="amount_python_compute">_i = inputs.IND_FONCT
+result = (_i.amount or 0.0) if _i else 0.0</field>
+            <field name="note">Non imposable ITS (CGI BJ). Hors base CNSS.
+is_prorata=False : forfait mensuel.</field>
+        </record>
+
+        <!-- seq 90 : IND_TRANS — Indemnité de transport (non imposable ITS) -->
+        <record id="rule_bj_ind_trans" model="hr.salary.rule">
+            <field name="name">Indemnité de transport</field>
+            <field name="code">IND_TRANS</field>
+            <field name="sequence" eval="90"/>
+            <field name="category_id" ref="gvs_hr_payroll_bj.ALW_NI_BJ"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="amount_python_compute">_i = inputs.IND_TRANS
+result = (_i.amount or 0.0) if _i else 0.0</field>
+            <field name="note">Non imposable ITS (CGI BJ). Hors base CNSS.
+is_prorata=False : forfait mensuel.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 3 : TOTAUX INTERMÉDIAIRES (TECH)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 100 : BRUT_IMP — Brut imposable (BASIC + ALW) -->
+        <record id="rule_bj_brut_imp" model="hr.salary.rule">
+            <field name="name">Brut imposable BJ</field>
+            <field name="code">BRUT_IMP</field>
+            <field name="sequence" eval="100"/>
+            <field name="category_id" ref="gvs_hr_payroll_bj.TECH_BJ"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">result = categories.BASIC + categories.ALW</field>
+            <field name="note">Base imposable ITS et CNSS = BASIC + ALW (hors ALW_NI_BJ).</field>
+        </record>
+
+        <!-- seq 105 : BRUT — Brut total (imposable + NI) -->
+        <record id="rule_bj_brut" model="hr.salary.rule">
+            <field name="name">Salaire brut total BJ</field>
+            <field name="code">BRUT</field>
+            <field name="sequence" eval="105"/>
+            <field name="category_id" ref="gvs_hr_payroll_bj.TECH_BJ"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">result = BRUT_IMP + categories.ALW_NI_BJ</field>
+            <field name="note">Brut total = BRUT_IMP + indemnités non imposables.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 4 : COTISATIONS SALARIALES (DED)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 110 : ITS — Impôt sur le Traitement et Salaire (barème mensuel progressif) -->
+        <record id="rule_bj_its" model="hr.salary.rule">
+            <field name="name">ITS</field>
+            <field name="code">ITS</field>
+            <field name="sequence" eval="110"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute"># Barème mensuel ITS Bénin (CGI BJ — formule Excel officielle validée)
+# Base arrondie à la tranche de 1 000 inférieure (ARRONDI.INF ;-3)
+#  0 % [0–60 000] ; 10 % [60 001–150 000] ; 15 % [150 001–250 000]
+# 19 % [250 001–500 000] ; 30 % [> 500 000]
+_b = int(BRUT_IMP // 1000) * 1000
+if _b &lt;= 60000:
+    _its = 0.0
+elif _b &lt;= 150000:
+    _its = (_b - 60000) * 0.10
+elif _b &lt;= 250000:
+    _its = 9000.0 + (_b - 150000) * 0.15
+elif _b &lt;= 500000:
+    _its = 9000.0 + 15000.0 + (_b - 250000) * 0.19
+else:
+    _its = 9000.0 + 15000.0 + 47500.0 + (_b - 500000) * 0.30
+result = -round(_its)</field>
+            <field name="note">ITS barème mensuel progressif (CGI Bénin — formule Excel validée).
+Base = ARRONDI.INF(BRUT_IMP ; -3) → arrondi à la tranche de 1 000 inférieure.
+Retenue salariale uniquement (pas de part patronale).</field>
+        </record>
+
+        <!-- seq 120 : CNSS_SAL — CNSS Assurance vieillesse salarié (3,6 %) -->
+        <record id="rule_bj_cnss_sal" model="hr.salary.rule">
+            <field name="name">CNSS vieillesse salarié</field>
+            <field name="code">CNSS_SAL</field>
+            <field name="sequence" eval="120"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">result = -BRUT_IMP
+result_rate = 3.6</field>
+            <field name="note">CNSS Assurance vieillesse — part salariale 3,6 % × BRUT_IMP.</field>
+        </record>
+
+        <!-- seq 130 : ACOMPTE — Acompte / Avance sur salaire -->
+        <record id="rule_bj_acompte" model="hr.salary.rule">
+            <field name="name">Acompte</field>
+            <field name="code">ACOMPTE</field>
+            <field name="sequence" eval="130"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">_i = inputs.ACOMPTE
+result = -((_i.amount or 0.0) if _i else 0.0)</field>
+            <field name="note">Acompte ou avance sur salaire. Retenu sur le net.</field>
+        </record>
+
+        <!-- seq 135 : DETTE — Remboursement de dette / prêt -->
+        <record id="rule_bj_dette" model="hr.salary.rule">
+            <field name="name">Remboursement dette</field>
+            <field name="code">DETTE</field>
+            <field name="sequence" eval="135"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">_i = inputs.DETTE
+result = -((_i.amount or 0.0) if _i else 0.0)</field>
+            <field name="note">Remboursement d'une dette ou d'un prêt accordé par l'employeur.</field>
+        </record>
+
+        <!-- seq 140 : SRTB — Prélèvement SRTB (optionnel) -->
+        <record id="rule_bj_srtb" model="hr.salary.rule">
+            <field name="name">Prélèvement SRTB</field>
+            <field name="code">SRTB</field>
+            <field name="sequence" eval="140"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">_i = inputs.SRTB
+result = -((_i.amount or 0.0) if _i else 0.0)</field>
+            <field name="note">Prélèvement SRTB (Syndicat / retenue syndicale). Optionnel — 0 si non renseigné.</field>
+        </record>
+
+        <!-- seq 145 : TOT_RET_SAL — Total retenues salariales (TECH) -->
+        <record id="rule_bj_tot_ret_sal" model="hr.salary.rule">
+            <field name="name">Total retenues salariales BJ</field>
+            <field name="code">TOT_RET_SAL</field>
+            <field name="sequence" eval="145"/>
+            <field name="category_id" ref="gvs_hr_payroll_bj.TECH_BJ"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">result = categories.DED</field>
+            <field name="note">Somme des retenues salariales (ITS + CNSS + ACOMPTE + DETTE + SRTB).</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 5 : NET À PAYER
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 200 : NET — Net à payer -->
+        <record id="rule_bj_net" model="hr.salary.rule">
+            <field name="name">Net à payer</field>
+            <field name="code">NET</field>
+            <field name="sequence" eval="200"/>
+            <field name="category_id" ref="om_hr_payroll.NET"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">result = BRUT + categories.DED</field>
+            <field name="note">Net à payer = BRUT (imposable + NI) + retenues salariales (négatives).</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 6 : CHARGES PATRONALES (COMP)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 210 : CNSS_PAT_AV — CNSS Assurance vieillesse patronal (6,4 %) -->
+        <record id="rule_bj_cnss_pat_av" model="hr.salary.rule">
+            <field name="name">CNSS vieillesse patronal</field>
+            <field name="code">CNSS_PAT_AV</field>
+            <field name="sequence" eval="210"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">result = BRUT_IMP
+result_rate = 6.4</field>
+            <field name="note">CNSS Assurance vieillesse — part patronale 6,4 % × BRUT_IMP.</field>
+        </record>
+
+        <!-- seq 215 : CNSS_PAT_RP — CNSS Risques professionnels patronal (1 %) -->
+        <record id="rule_bj_cnss_pat_rp" model="hr.salary.rule">
+            <field name="name">CNSS risques professionnels</field>
+            <field name="code">CNSS_PAT_RP</field>
+            <field name="sequence" eval="215"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">result = BRUT_IMP
+result_rate = 1.0</field>
+            <field name="note">CNSS Risques professionnels — part patronale 1 % × BRUT_IMP.</field>
+        </record>
+
+        <!-- seq 220 : CNSS_PAT_PF — CNSS Prestations familiales patronal (9 %) -->
+        <record id="rule_bj_cnss_pat_pf" model="hr.salary.rule">
+            <field name="name">CNSS prestations familiales</field>
+            <field name="code">CNSS_PAT_PF</field>
+            <field name="sequence" eval="220"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">result = BRUT_IMP
+result_rate = 9.0</field>
+            <field name="note">CNSS Prestations familiales — part patronale 9 % × BRUT_IMP.</field>
+        </record>
+
+        <!-- seq 225 : VPS — Versement Patronal de Solidarité (4 %) -->
+        <record id="rule_bj_vps" model="hr.salary.rule">
+            <field name="name">VPS</field>
+            <field name="code">VPS</field>
+            <field name="sequence" eval="225"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">result = BRUT_IMP
+result_rate = 4.0</field>
+            <field name="note">Versement Patronal de Solidarité — part patronale 4 % × BRUT_IMP (CGI Bénin).</field>
+        </record>
+
+        <!-- seq 240 : TOT_PAT — Total charges patronales -->
+        <record id="rule_bj_tot_pat" model="hr.salary.rule">
+            <field name="name">Total charges patronales BJ</field>
+            <field name="code">TOT_PAT</field>
+            <field name="sequence" eval="240"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="amount_python_compute">result = CNSS_PAT_AV + CNSS_PAT_RP + CNSS_PAT_PF + VPS</field>
+            <field name="note">Total charges patronales = CNSS_PAT_AV + CNSS_PAT_RP + CNSS_PAT_PF + VPS.</field>
+        </record>
+
+    </data>
+</odoo>

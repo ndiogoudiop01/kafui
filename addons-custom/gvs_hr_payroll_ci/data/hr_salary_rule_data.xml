@@ -1,0 +1,731 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            RÈGLES SALARIALES — Paie Côte d'Ivoire
+            Source : fichier Excel CI_Fiche de paie.xlsx, feuille « Règles Odoo »
+
+            ── Convention om_hr_payroll ──
+            • localdict['result']      = montant Python de la règle
+            • localdict['result_rate'] = taux d'affichage (Taux/NB column)
+              IMPORTANT : tot_rule = result × result_qty × result_rate / 100
+              → si result_rate != 100, mettre dans result la BASE (pas le montant final)
+                pour que tot_rule soit correct.
+            • 'contract' = hr.version (wage, date_start, etc.)
+            • 'inputs.CODE' = BrowsableObject sur les entrées du bulletin.
+              Pattern sécurisé : _i = inputs.CODE ; val = _i.amount if _i else 0.0
+            • Règles précédemment calculées accessibles par leur code (localdict) :
+              BRUT_IMP, BASE_CNPS, BASE_PF, ITS_BRUT, RICF, BRUT, ARRONDI…
+            • categories.BASIC, categories.ALW, categories.DED, categories.COMP
+              sont des accumulateurs mis à jour après chaque règle.
+
+            Toutes les règles : company_id=False, country_id=CI.
+            Isolation : ir.rule dans gvs_hr_payroll_base cache ces règles aux autres pays.
+        -->
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 1 : ÉLÉMENTS DU BRUT IMPOSABLE (BASIC + ALW)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 5 : NB_JOURS — Nombre de jours travaillés (TECH, affiché sur bulletin) -->
+        <record id="rule_ci_nb_jours" model="hr.salary.rule">
+            <field name="name">Jours travaillés</field>
+            <field name="code">NB_JOURS</field>
+            <field name="sequence" eval="5"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.NB_JOURS
+if _i and _i.amount:
+    result = _i.amount
+else:
+    _wd = worked_days.WORK100
+    result = _wd.number_of_days if _wd else 30.0</field>
+            <field name="note">Priorité : 1) Other Input NB_JOURS (saisie manuelle exceptionnelle) si renseigné et non nul ;
+2) sinon, nombre de jours de l'onglet "Jours travaillés et entrées" (ligne WORK100). WORK100 est
+   calculé par get_worked_day_lines() sur une base calendaire de 30 jours (moins congés éventuels),
+   donc directement comparable à 30 ;
+3) sinon, 30 jours (mois complet CI). SB est calculé au prorata : wage × NB_JOURS / 30.</field>
+        </record>
+
+        <!-- seq 10 : SB — Salaire de base (prorata NB_JOURS / 30) -->
+        <record id="rule_ci_sb" model="hr.salary.rule">
+            <field name="name">Salaire de base</field>
+            <field name="code">SB</field>
+            <field name="sequence" eval="10"/>
+            <field name="category_id" ref="om_hr_payroll.BASIC"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = contract.wage * min(NB_JOURS, 30.0) / 30.0</field>
+            <field name="note">SB proraté = wage × NB_JOURS / 30. Si NB_JOURS = 30 (mois complet), SB = wage. Si NB_JOURS &lt; 30, prorata automatique. Si NB_JOURS = 0 (absence totale), SB = 0 — ne PAS utiliser
+"NB_JOURS if NB_JOURS else 30.0" : 0 est une valeur valide (falsy en Python) qui serait sinon
+incorrectement remplacée par 30 (mois complet payé). NB_JOURS calculé en seq 5.</field>
+        </record>
+
+        <!-- seq 20 : SB_ABS — Retenue manuelle pour absences ponctuelles (optionnel) -->
+        <record id="rule_ci_sb_abs" model="hr.salary.rule">
+            <field name="name">Jours non travaillés</field>
+            <field name="code">SB_ABS</field>
+            <field name="sequence" eval="20"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.ABS_NT_D
+_days = _i.amount if _i else 0.0
+result = -(contract.wage / 30.0) * _days</field>
+            <field name="note">Retenue manuelle pour jours absents supplémentaires (à utiliser si NB_JOURS = 30 et absences ponctuelles). Si NB_JOURS est utilisé pour le prorata, laisser ABS_NT_D à 0. Mois forfaitaire 30 jours.</field>
+        </record>
+
+        <!-- seq 30 : HS15 — Heures supp. majorées 15 % -->
+        <record id="rule_ci_hs15" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 15 %</field>
+            <field name="code">HS15</field>
+            <field name="sequence" eval="30"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_si = inputs.SURSAL
+_s = _si.amount if _si else 0.0
+_hi = inputs.HS15_H
+_h = _hi.amount if _hi else 0.0
+result = (contract.wage + _s) / 173.33 * _h
+result_rate = 115.0</field>
+            <field name="note">41e-46e heure, +15 % (décret 96-203 CI). result = taux_horaire × heures (base), result_rate = 115 → tot_rule = base × 115/100. Affiche 115,00 % en Taux/NB. SURSAL lu depuis l'input (seq 110 non encore calculée).</field>
+        </record>
+
+        <!-- seq 40 : HS50 — Heures supp. majorées 50 % -->
+        <record id="rule_ci_hs50" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 50 %</field>
+            <field name="code">HS50</field>
+            <field name="sequence" eval="40"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_si = inputs.SURSAL
+_s = _si.amount if _si else 0.0
+_hi = inputs.HS50_H
+_h = _hi.amount if _hi else 0.0
+result = (contract.wage + _s) / 173.33 * _h
+result_rate = 150.0</field>
+            <field name="note">Au-delà 46e h / nuit jours ouvrables, +50 % (décret 96-203 CI). result = base horaire × heures, result_rate = 150 → tot_rule = base × 150/100. Affiche 150,00 % en Taux/NB.</field>
+        </record>
+
+        <!-- seq 45 : HS75 — Heures supp. majorées 75 % (dimanches) -->
+        <record id="rule_ci_hs75" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 75 %</field>
+            <field name="code">HS75</field>
+            <field name="sequence" eval="45"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_si = inputs.SURSAL
+_s = _si.amount if _si else 0.0
+_hi = inputs.HS75_H
+_h = _hi.amount if _hi else 0.0
+result = (contract.wage + _s) / 173.33 * _h
+result_rate = 175.0</field>
+            <field name="note">Dimanches, +75 % (décret 96-203 CI). result = base horaire × heures, result_rate = 175 → tot_rule = base × 175/100. Affiche 175,00 % en Taux/NB.</field>
+        </record>
+
+        <!-- seq 50 : HS100 — Heures supp. majorées 100 % -->
+        <record id="rule_ci_hs100" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 100 %</field>
+            <field name="code">HS100</field>
+            <field name="sequence" eval="50"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_si = inputs.SURSAL
+_s = _si.amount if _si else 0.0
+_hi = inputs.HS100_H
+_h = _hi.amount if _hi else 0.0
+result = (contract.wage + _s) / 173.33 * _h
+result_rate = 200.0</field>
+            <field name="note">Nuit + jours fériés, +100 % (décret 96-203 CI). result = base horaire × heures, result_rate = 200 → tot_rule = base × 200/100. Affiche 200,00 % en Taux/NB.</field>
+        </record>
+
+        <!-- seq 60 : PR_REP — Prime de représentation imposable -->
+        <record id="rule_ci_pr_rep" model="hr.salary.rule">
+            <field name="name">Prime de représentation imposable</field>
+            <field name="code">PR_REP</field>
+            <field name="sequence" eval="60"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.PR_REP
+result = _i.amount if _i else 0.0</field>
+            <field name="note">Prime imposable et cotisable saisie librement. Entre dans BRUT_IMP via catégorie ALW.</field>
+        </record>
+
+        <!-- seq 70 : PR_ANC — Prime d'ancienneté (auto depuis date_start contrat) -->
+        <record id="rule_ci_pr_anc" model="hr.salary.rule">
+            <field name="name">Prime d'ancienneté</field>
+            <field name="code">PR_ANC</field>
+            <field name="sequence" eval="70"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">today = payslip.date_to
+start = contract.date_start
+if start and today:
+    years = today.year - start.year - ((today.month, today.day) &lt; (start.month, start.day))
+    years = max(years, 0)
+    # CCI CI : 2 % acquis à partir de 2 ans, +1 % par année supplémentaire.
+    # Plafond provisoire : 25 % — à confirmer avec la DGT CI.
+    if years &gt;= 2:
+        rate = min(years, 25)
+    else:
+        rate = 0
+else:
+    rate = 0
+result = round(contract.wage * rate / 100.0)</field>
+            <field name="note">CCI CI : 2 % à partir de 2 ans d'ancienneté, +1 % par année supplémentaire.
+Formule : 0 % si &lt; 2 ans ; 2 % à 2 ans ; 3 % à 3 ans ; etc. Plafond provisoire 25 %.
+result = wage × rate / 100 calculé directement (évite aléas de result_rate).</field>
+        </record>
+
+        <!-- seq 80 : PR_OBJ — Prime sur objectif -->
+        <record id="rule_ci_pr_obj" model="hr.salary.rule">
+            <field name="name">Prime sur objectif</field>
+            <field name="code">PR_OBJ</field>
+            <field name="sequence" eval="80"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.PR_OBJ
+result = _i.amount if _i else 0.0</field>
+            <field name="note">Prime variable imposable et cotisable. Montant saisi directement.</field>
+        </record>
+
+        <!-- seq 90 : IND_CONGE — Indemnité de congés payés (imposable) -->
+        <record id="rule_ci_ind_conge" model="hr.salary.rule">
+            <field name="name">Congés (indemnité)</field>
+            <field name="code">IND_CONGE</field>
+            <field name="sequence" eval="90"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.CONGES
+result = _i.amount if _i else 0.0</field>
+            <field name="note">Imposable et cotisable en CI. Montant calculé hors Odoo et saisi via l'entrée CONGES.</field>
+        </record>
+
+        <!-- seq 100 : GRATIF — Gratification / 13e mois (imposable) -->
+        <record id="rule_ci_gratif" model="hr.salary.rule">
+            <field name="name">Gratification</field>
+            <field name="code">GRATIF</field>
+            <field name="sequence" eval="100"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.GRATIF
+result = _i.amount if _i else 0.0</field>
+            <field name="note">Prime de fin d'année / 13e mois. Intégralement imposable et cotisable (pas d'abattement spécifique en CI).</field>
+        </record>
+
+        <!-- seq 110 : SURSAL — Sursalaire (complément au salaire catégoriel) -->
+        <record id="rule_ci_sursal" model="hr.salary.rule">
+            <field name="name">Sursalaire</field>
+            <field name="code">SURSAL</field>
+            <field name="sequence" eval="110"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.SURSAL
+result = _i.amount if _i else 0.0</field>
+            <field name="note">Complément au salaire catégoriel minimum. Imposable et cotisable. ⚠ Seq 110 : les règles HS15/50/100 (seq 30-50) lisent SURSAL directement depuis l'input, pas depuis localdict['SURSAL'].</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 2 : TOTAUX INTERMÉDIAIRES
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 120 : BRUT_IMP — Salaire brut imposable = BASIC + ALW -->
+        <record id="rule_ci_brut_imp" model="hr.salary.rule">
+            <field name="name">Salaire brut imposable</field>
+            <field name="code">BRUT_IMP</field>
+            <field name="sequence" eval="120"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.cat_ci_gross_imp"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = categories.BASIC + categories.ALW</field>
+            <field name="note">Assiette ITS et CNPS : BASIC (SB) + ALW (tous les gains imposables dont SB_ABS négatif). Catégorie GROSS_IMP distincte de GROSS pour isoler le brut imposable. Source : Total Soumis de l'Excel CI.</field>
+        </record>
+
+        <!-- seq 130 : IND_TRANS — Indemnité de transport NI (fraction ≤ 30 000 FCFA) -->
+        <record id="rule_ci_ind_trans" model="hr.salary.rule">
+            <field name="name">Indemnité de transport (NI)</field>
+            <field name="code">IND_TRANS</field>
+            <field name="sequence" eval="130"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.ALW_NI"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.TRANSPORT
+_t = _i.amount if _i else 0.0
+result = min(_t, 30000.0)</field>
+            <field name="note">Fraction exonérée ITS/CNPS : plafond 30 000 FCFA/mois (arrêté DGI CI). Catégorie ALW_NI → n'entre pas dans BRUT_IMP. Le surplus imposable est traité dans IND_TRANS_IMP (seq 132).</field>
+        </record>
+
+        <!-- seq 132 : IND_TRANS_IMP — Fraction imposable de l'indemnité de transport (> 30 000) -->
+        <record id="rule_ci_ind_trans_imp" model="hr.salary.rule">
+            <field name="name">Indemnité de transport (imposable)</field>
+            <field name="code">IND_TRANS_IMP</field>
+            <field name="sequence" eval="132"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.TRANSPORT
+_t = _i.amount if _i else 0.0
+result = max(0.0, _t - 30000.0)</field>
+            <field name="note">Fraction imposable ITS/CNPS : excédent au-delà de 30 000 FCFA/mois. Catégorie ALW → entre dans BRUT_IMP. Visible uniquement si TRANSPORT &gt; 30 000.</field>
+        </record>
+
+        <!-- seq 140 : IND_FONC — Indemnités de fonction (non imposable ITS, dans base CNPS) -->
+        <record id="rule_ci_ind_fonc" model="hr.salary.rule">
+            <field name="name">Indemnités de fonction</field>
+            <field name="code">IND_FONC</field>
+            <field name="sequence" eval="140"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.ALW_NI"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.IND_FONC
+result = _i.amount if _i else 0.0</field>
+            <field name="note">Non imposable ITS, mais réintégrée dans BASE_CNPS (règle seq 170). Catégorie ALW_NI → n'entre pas dans BRUT_IMP. Traitement mixte reproduit depuis l'Excel CI — à valider juridiquement.</field>
+        </record>
+
+        <!-- seq 150 : TOT_PRIME — Sous-total primes non imposables (TECH, caché) -->
+        <record id="rule_ci_tot_prime" model="hr.salary.rule">
+            <field name="name">Total primes non imposables</field>
+            <field name="code">TOT_PRIME</field>
+            <field name="sequence" eval="150"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = IND_TRANS + IND_FONC</field>
+            <field name="note">Sous-total des primes non imposables (transport + fonction). Masqué du bulletin. IND_TRANS et IND_FONC sont des variables localdict disponibles car seq 130/140 déjà calculées.</field>
+        </record>
+
+        <!-- seq 160 : BRUT — Gain brut total (imposable + non imposable) -->
+        <record id="rule_ci_brut" model="hr.salary.rule">
+            <field name="name">Gain brut total</field>
+            <field name="code">BRUT</field>
+            <field name="sequence" eval="160"/>
+            <field name="category_id" ref="om_hr_payroll.GROSS"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = BRUT_IMP + TOT_PRIME</field>
+            <field name="note">Brut total versé = brut imposable + primes non imposables (transport + fonction). Reproduit le Gain brut du pied de bulletin Excel.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 3 : BASES DE CALCUL (TECH, cachés)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 170 : BASE_CNPS — Base CNPS retraite plafonnée 3 375 000 -->
+        <record id="rule_ci_base_cnps" model="hr.salary.rule">
+            <field name="name">Base CNPS plafonnée</field>
+            <field name="code">BASE_CNPS</field>
+            <field name="sequence" eval="170"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = min(BRUT_IMP + IND_FONC, 3375000.0)</field>
+            <field name="note">Base CNPS retraite = BRUT_IMP + IND_FONC, plafonnée à 3 375 000 FCFA (45 × SMIG 75 000). Le plafond s'applique sur le total (BRUT_IMP + IND_FONC), pas uniquement sur BRUT_IMP.</field>
+        </record>
+
+        <!-- seq 180 : BASE_PF — Base PF/AT plafonnée 75 000 -->
+        <record id="rule_ci_base_pf" model="hr.salary.rule">
+            <field name="name">Base plafonnée PF / AT</field>
+            <field name="code">BASE_PF</field>
+            <field name="sequence" eval="180"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = min(BASE_CNPS, 75000.0)</field>
+            <field name="note">Plafond Prestations Familiales et Accidents du Travail = 75 000 FCFA (à confirmer avec CNPS).</field>
+        </record>
+
+        <!-- seq 190 : ITS_BRUT — ITS brut avant RICF, barème progressif 2024 -->
+        <record id="rule_ci_its_brut" model="hr.salary.rule">
+            <field name="name">ITS brut avant RICF</field>
+            <field name="code">ITS_BRUT</field>
+            <field name="sequence" eval="190"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = (
+    max(0.0, min(BRUT_IMP, 240000.0) - 75000.0) * 0.16
+    + max(0.0, min(BRUT_IMP, 800000.0) - 240000.0) * 0.21
+    + max(0.0, min(BRUT_IMP, 2400000.0) - 800000.0) * 0.24
+    + max(0.0, min(BRUT_IMP, 8000000.0) - 2400000.0) * 0.28
+    + max(0.0, BRUT_IMP - 8000000.0) * 0.32
+)</field>
+            <field name="note">Barème ITS mensuel unifié 2024 (annexe fiscale CI). Tranche 0-75k : 0 % ; 75k-240k : 16 % ; 240k-800k : 21 % ; 800k-2,4M : 24 % ; 2,4M-8M : 28 % ; &gt;8M : 32 %. RICF déduit dans la règle ITS (seq 200).</field>
+        </record>
+
+        <!-- seq 195 : RICF — Réduction pour charges de famille -->
+        <record id="rule_ci_ricf" model="hr.salary.rule">
+            <field name="name">Réduction pour charges de famille</field>
+            <field name="code">RICF</field>
+            <field name="sequence" eval="195"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute"># ── Quotient familial CI (CGI 2024, art. 95) ──
+# 1 part de base pour tout contribuable
+# +1 part si marié ou en concubinage (union légale)
+# +0,5 part par enfant à charge
+# Veuf(ve) / divorcé(e) avec enfants : +0,5/enfant (pas de part conjugale)
+# Plafond 5 parts
+_married = employee.marital in ('married', 'cohabitant')
+_widowed = employee.marital in ('widower', 'divorced')
+_children = int(employee.children or 0)
+_parts = 1.0 + (1.0 if _married else 0.0) + 0.5 * _children
+_parts = min(_parts, 5.0)
+# RICF mensuelle = (parts - 1) × 11 000 FCFA, plafonnée à 44 000 FCFA
+result = min(max(0.0, _parts - 1.0) * 11000.0, 44000.0)</field>
+            <field name="note">CGI CI art. 95 : 1 part base ; +1 si marié/concubin ; +0,5 par enfant à charge. Veuf/divorcé : +0,5/enfant sans part conjugale. Max 5 parts. RICF = (parts-1) × 11 000 F/mois, plafonné à 44 000 F. Résultat positif (soustrait de ITS_BRUT).</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 4 : RETENUES SALARIALES (DED)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 200 : ITS — Impôt sur les traitements et salaires -->
+        <record id="rule_ci_its" model="hr.salary.rule">
+            <field name="name">ITS (impôt sur les traitements et salaires)</field>
+            <field name="code">ITS</field>
+            <field name="sequence" eval="200"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = -max(0.0, ITS_BRUT - RICF)</field>
+            <field name="note">ITS net = max(0, ITS brut - RICF). Résultat négatif (déduction). Barème progressif → pas de result_rate unique.</field>
+        </record>
+
+        <!-- seq 210 : CNPS_SAL — Retenue CNPS salariale retraite 6,3 % -->
+        <record id="rule_ci_cnps_sal" model="hr.salary.rule">
+            <field name="name">Retenue CNPS salariale (retraite 6,3 %)</field>
+            <field name="code">CNPS_SAL</field>
+            <field name="sequence" eval="210"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = -BASE_CNPS
+result_rate = 6.3</field>
+            <field name="note">result=-BASE_CNPS (base négative) + result_rate=6.3 → tot_rule = -BASE_CNPS × 6.3/100 = -0.063 × BASE_CNPS. La colonne Taux/NB affiche 6,30 %. Plafond retraite 3 375 000 FCFA.</field>
+        </record>
+
+        <!-- seq 220 : CMU_SAL — CMU part salariale (500 F × effectif) -->
+        <record id="rule_ci_cmu_sal" model="hr.salary.rule">
+            <field name="name">CMU — part salariale</field>
+            <field name="code">CMU_SAL</field>
+            <field name="sequence" eval="220"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_ia = inputs.CMU_ADJ
+_adj = _ia.amount if _ia else 0.0
+# CMU CI : salarié (1) + personnes à charge (nb_charge = onglet Famille). CMU_ADJ pour correction ponctuelle.
+_effectif = 1.0 + int(employee.nb_charge or 0) + _adj
+result = -500.0 * _effectif</field>
+            <field name="note">CMU CI loi 2014-131 : 500 FCFA/mois/personne. Effectif = salarié (1) + personnes à charge (nb_charge, calculé depuis onglet Famille). CMU_ADJ = correction manuelle ponctuelle (±). Résultat négatif (déduction).</field>
+        </record>
+
+        <!-- seq 230 : RET_DETTE — Remboursement de prêt / dette -->
+        <record id="rule_ci_ret_dette" model="hr.salary.rule">
+            <field name="name">Remboursement de dettes</field>
+            <field name="code">RET_DETTE</field>
+            <field name="sequence" eval="230"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.DETTE
+result = -(abs(_i.amount) if _i else 0.0)</field>
+            <field name="note">Retenue prêt/dette. abs() garantit le signe négatif quelle que soit la saisie. Pas de plafonnement codé (art. 33.4 Code du travail CI).</field>
+        </record>
+
+        <!-- seq 240 : ACOMPTE — Avance sur salaire -->
+        <record id="rule_ci_acompte" model="hr.salary.rule">
+            <field name="name">Acompte</field>
+            <field name="code">ACOMPTE</field>
+            <field name="sequence" eval="240"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_i = inputs.ACOMPTE
+result = -(abs(_i.amount) if _i else 0.0)</field>
+            <field name="note">Avance sur salaire déjà versée. Résultat négatif (déduction du net).</field>
+        </record>
+
+        <!-- seq 250 : TOT_RET_SAL — Total retenues salariales (TECH, caché) -->
+        <record id="rule_ci_tot_ret_sal" model="hr.salary.rule">
+            <field name="name">Total retenues salariales</field>
+            <field name="code">TOT_RET_SAL</field>
+            <field name="sequence" eval="250"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = categories.DED</field>
+            <field name="note">Contrôle : ITS + CNPS_SAL + CMU_SAL + RET_DETTE + ACOMPTE (tous négatifs, catégorie DED). Masqué du bulletin.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 5 : CHARGES PATRONALES (COMP)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 260 : CNPS_PAT — CNPS patronale retraite 7,7 % -->
+        <record id="rule_ci_cnps_pat" model="hr.salary.rule">
+            <field name="name">CNPS patronale (retraite 7,7 %)</field>
+            <field name="code">CNPS_PAT</field>
+            <field name="sequence" eval="260"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = BASE_CNPS
+result_rate = 7.7</field>
+            <field name="note">result=BASE_CNPS (base positive) + result_rate=7.7 → tot_rule = BASE_CNPS × 7.7/100. Taux global retraite CNPS = 14 % (6,3 % sal + 7,7 % pat).</field>
+        </record>
+
+        <!-- seq 270 : IS_PAT — Impôt sur salaires patronal 1,2 % -->
+        <record id="rule_ci_is_pat" model="hr.salary.rule">
+            <field name="name">Impôt sur salaires patronal (IS 1,2 %)</field>
+            <field name="code">IS_PAT</field>
+            <field name="sequence" eval="270"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = BRUT_IMP
+result_rate = 1.2</field>
+            <field name="note">Contribution patronale IS : 1,2 % du brut imposable. tot_rule = BRUT_IMP × 1.2/100.</field>
+        </record>
+
+        <!-- seq 280 : TAXE_APP — Taxe d'apprentissage 0,4 % -->
+        <record id="rule_ci_taxe_app" model="hr.salary.rule">
+            <field name="name">Taxe d'apprentissage (0,4 %)</field>
+            <field name="code">TAXE_APP</field>
+            <field name="sequence" eval="280"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = BRUT_IMP
+result_rate = 0.4</field>
+            <field name="note">Taxe d'apprentissage : 0,4 % du brut imposable. tot_rule = BRUT_IMP × 0.4/100.</field>
+        </record>
+
+        <!-- seq 290 : TAXE_FPC — Formation professionnelle continue 0,6 % -->
+        <record id="rule_ci_taxe_fpc" model="hr.salary.rule">
+            <field name="name">Taxe formation professionnelle continue (0,6 %)</field>
+            <field name="code">TAXE_FPC</field>
+            <field name="sequence" eval="290"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = BRUT_IMP
+result_rate = 0.6</field>
+            <field name="note">Taxe FPC : 0,6 % du brut imposable. tot_rule = BRUT_IMP × 0.6/100.</field>
+        </record>
+
+        <!-- seq 300 : CNPS_PF — Prestations familiales 5,75 % -->
+        <record id="rule_ci_cnps_pf" model="hr.salary.rule">
+            <field name="name">Prestations familiales (5,75 %)</field>
+            <field name="code">CNPS_PF</field>
+            <field name="sequence" eval="300"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = BASE_PF
+result_rate = 5.75</field>
+            <field name="note">PF : 5,75 % (dont 0,75 % assurance maternité) sur base plafonnée 75 000 FCFA. tot_rule = BASE_PF × 5.75/100.</field>
+        </record>
+
+        <!-- seq 310 : CNPS_AT — Accident du travail 3 % -->
+        <record id="rule_ci_cnps_at" model="hr.salary.rule">
+            <field name="name">Accident du travail (3 %)</field>
+            <field name="code">CNPS_AT</field>
+            <field name="sequence" eval="310"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = BASE_PF
+result_rate = 3.0</field>
+            <field name="note">AT : 3 % sur base plafonnée 75 000 FCFA. tot_rule = BASE_PF × 3.0/100. Taux variable selon risque — vérifiez la notification CNPS.</field>
+        </record>
+
+        <!-- seq 320 : CMU_PAT — CMU part patronale (500 F × effectif) -->
+        <record id="rule_ci_cmu_pat" model="hr.salary.rule">
+            <field name="name">CMU — part patronale</field>
+            <field name="code">CMU_PAT</field>
+            <field name="sequence" eval="320"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_ia = inputs.CMU_ADJ
+_adj = _ia.amount if _ia else 0.0
+# Même effectif que CMU_SAL : salarié (1) + personnes à charge (nb_charge onglet Famille)
+_effectif = 1.0 + int(employee.nb_charge or 0) + _adj
+result = 500.0 * _effectif</field>
+            <field name="note">CMU patronale : même effectif que CMU_SAL (salarié + nb_charge). Résultat positif (COMP). 500 FCFA/mois/personne.</field>
+        </record>
+
+        <!-- seq 330 : TOT_PAT — Total charges patronales (TECH, caché) -->
+        <record id="rule_ci_tot_pat" model="hr.salary.rule">
+            <field name="name">Total charges patronales</field>
+            <field name="code">TOT_PAT</field>
+            <field name="sequence" eval="330"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = categories.COMP</field>
+            <field name="note">Contrôle : CNPS_PAT + IS_PAT + TAXE_APP + TAXE_FPC + CNPS_PF + CNPS_AT + CMU_PAT. Masqué du bulletin.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 6 : NET À PAYER
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 340 : ARRONDI — Arrondi du net à la centaine la plus proche -->
+        <record id="rule_ci_arrondi" model="hr.salary.rule">
+            <field name="name">Arrondi de paie</field>
+            <field name="code">ARRONDI</field>
+            <field name="sequence" eval="340"/>
+            <field name="category_id" ref="gvs_hr_payroll_ci.ALW_NI"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">_net_exact = BRUT + categories.DED
+result = int((_net_exact + 50.0) // 100.0) * 100.0 - _net_exact</field>
+            <field name="note">Arrondi du net à la centaine la plus proche (pratique CI). BRUT = localdict seq 160. categories.DED = somme de toutes les retenues (ITS, CNPS_SAL, CMU_SAL, RET_DETTE, ACOMPTE). Résultat dans ALW_NI pour ne pas affecter le brut imposable.</field>
+        </record>
+
+        <!-- seq 350 : NET — Net à payer -->
+        <record id="rule_ci_net" model="hr.salary.rule">
+            <field name="name">Net à payer</field>
+            <field name="code">NET</field>
+            <field name="sequence" eval="350"/>
+            <field name="category_id" ref="om_hr_payroll.NET"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+            <field name="amount_python_compute">result = BRUT + categories.DED + ARRONDI</field>
+            <field name="note">Net = BRUT (gain brut total) + categories.DED (retenues négatives) + ARRONDI. = net arrondi à la centaine. Reproduit la cellule I54 de l'Excel CI.</field>
+        </record>
+
+    </data>
+</odoo>

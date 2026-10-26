@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="ir_rule_hr_contract_multi_company" model="ir.rule">
+            <field name="name">HR Payslip: Multi Company</field>
+            <field name="model_id" ref="om_hr_payroll.model_hr_payslip"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+    <record id="hr_payroll_payslip_line_company" model="ir.rule">
+        <field name="name">Payslips Line: Multi Company</field>
+        <field name="model_id" ref="om_hr_payroll.model_hr_payslip_line"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="ir_rule_convention_company" model="ir.rule">
+        <field name="name">Convention Collective: Multi Company</field>
+        <field name="model_id" ref="khk_hr_payor.model_convention_collective"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="convention_line_company" model="ir.rule">
+        <field name="name">Ligne de Convention Collective: Multi Company</field>
+        <field name="model_id" ref="khk_hr_payor.model_convention_collective_line"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="hr_payroll_structure_company" model="ir.rule">
+        <field name="name">Payroll Structure: Multi Company</field>
+        <field name="model_id" ref="om_hr_payroll.model_hr_payroll_structure"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="hr_payslip_run__company" model="ir.rule">
+        <field name="name">Payslip Run: Multi Company</field>
+        <field name="model_id" ref="om_hr_payroll.model_hr_payslip_run"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="hr_salary_rule_company" model="ir.rule">
+        <field name="name">Salary Rule: Multi Company</field>
+        <field name="model_id" ref="om_hr_payroll.model_hr_salary_rule"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+
+</odoo>

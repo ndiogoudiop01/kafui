@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Extension fiche employé — module GVS base.
+
+        Ajoute :
+        1. Bouton stat « Contrat » (hr.version).
+        2. Onglet « Famille » universel (visible pour tous les pays) :
+             - Personnes à charge (nb_charge, calculé depuis relation.famille)
+             - Liste relation_ids (conjoint, enfants, autres)
+           Cet onglet est extensible par les modules pays (khk_hr_payor y ajoute
+           la section Fiscalité Sénégal via xpath position="inside").
+        3. Champ nb_charge dans la section payroll_group (lecture rapide).
+    -->
+
+    <record id="hr_employee_base_famille_inherit" model="ir.ui.view">
+        <field name="name">hr.employee.base.nb_charge.inherit</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+
+            <!-- ── Bouton stat Contrat ──────────────────────────────────────── -->
+            <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
+                <button name="action_open_contract"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-file-text-o"
+                        groups="hr.group_hr_user">
+                    <field name="versions_count" widget="statinfo" string="Contrat(s)"/>
+                </button>
+            </xpath>
+
+            <!-- ── Onglet Famille universel — après Paramètres ─────────────── -->
+            <!-- Visible pour tout utilisateur RH (hr.group_hr_user), sans       -->
+            <!-- dépendance au module payroll (community ou enterprise).          -->
+            <!-- La section Fiscalité (IR/TRIMF) est ajoutée par khk_hr_payor    -->
+            <!-- via un xpath position="inside" sur ce même onglet.              -->
+            <xpath expr="//page[@name='hr_settings']" position="after">
+                <page string="Famille" name="famille" groups="hr.group_hr_user">
+                    <group colspan="2" col="2">
+                        <!-- Personnes à charge — tous pays -->
+                        <group string="Personnes à charge" name="famille_nb_charge">
+                            <field name="nb_charge"
+                                   readonly="1"
+                                   string="Personnes à charge"
+                                   help="Calculé depuis les relations ci-dessous.&#10;• Conjoint non salarié : +1&#10;• Enfant de moins de 18 ans : +1&#10;Plafonné à 6 personnes."/>
+                        </group>
+                    </group>
+                    <separator string="Relations familiales"/>
+                    <group>
+                        <field name="relation_ids" nolabel="1">
+                            <list editable="bottom">
+                                <field name="type" string="Relation"/>
+                                <field name="nom"/>
+                                <field name="prenom"/>
+                                <field name="birth"
+                                       string="Date de naissance"
+                                       optional="show"/>
+                                <field name="date_mariage"
+                                       string="Date de mariage"
+                                       optional="show"/>
+                                <field name="salari"
+                                       string="Salarié(e)"
+                                       help="Cochez si cette personne est salariée. Un conjoint salarié ne compte pas comme personne à charge."/>
+                            </list>
+                        </field>
+                    </group>
+                    <!-- Note explicative des règles -->
+                    <div class="alert alert-info" role="alert">
+                        <strong>Règles personnes à charge :</strong>
+                        <ul class="mb-0 mt-1">
+                            <li><strong>Conjoint</strong> : compté à charge uniquement si <em>non salarié(e)</em>.</li>
+                            <li><strong>Enfant</strong> : compté à charge si âgé de <em>moins de 18 ans</em> (date de naissance obligatoire).</li>
+                            <li>Maximum <strong>6 personnes</strong> à charge.</li>
+                        </ul>
+                    </div>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

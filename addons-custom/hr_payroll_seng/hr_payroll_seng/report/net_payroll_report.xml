@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+  <record id="action_hr_global_view_report" model="ir.actions.act_window">
+            <field name="type">ir.actions.act_window</field>
+            <field name="name">Etat paie</field>
+            <field name="res_model">hr.global.report.view</field>
+            <field name="view_mode">tree,form</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="help" type="html">
+                <p class="oe_view_nocontent_create">Creer tableau</p>
+            </field>
+        </record>
+ 
+        <record model="ir.ui.view" id="action_hr_payslip_view_report_tree">
+            <field name="name">Etat paie</field>
+            <field name="model">hr.global.report.view</field>
+            <field name="arch" type="xml">
+                <tree string="Tableau cnss" create="false">
+				<field name='date_from'/>
+
+                    <field name='name'/>
+                    <field name='embauche'/>
+                    <field name='total'/>
+                    <field name='number_of_hours'/>
+
+                </tree>
+            </field>
+        </record>
+		
+
+        <menuitem id="menu_hr_payslip_view_report" name="Net par employé"
+                  parent="hr_payroll_seng.menu_hr_payslip_reports" action="action_hr_global_view_report"
+                  groups="hr.group_hr_manager" sequence="10"/>
+    </data>
+	
+	
+	
+	
+</odoo>

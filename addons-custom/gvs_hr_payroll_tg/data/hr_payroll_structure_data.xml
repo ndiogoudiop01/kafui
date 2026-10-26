@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            Structure de paie Togo — unique : TG_MENS
+
+            Structure globale (company_id=False) : visible par toutes les sociétés,
+            applicable aux contrats des employés des sociétés Togo (pays=TG).
+            Les bulletins et employés restent liés à leur société spécifique.
+
+            IND_KM est désormais une allocation IMPOSABLE (catégorie ALW, seq 35)
+            saisie mensuellement via les éléments variables du contrat.
+        -->
+
+        <record id="struct_tg_bulletin_mensuel" model="hr.payroll.structure">
+            <field name="name">Togo — Bulletin mensuel</field>
+            <field name="code">TG_MENS</field>
+            <!-- Globale : applicable à toutes les sociétés Togo -->
+            <field name="company_id" eval="False"/>
+            <!-- Visibilité restreinte au pays Togo via ir.rule -->
+            <field name="country_id" ref="base.tg"/>
+            <!-- Pas de structure parente : TG_MENS est autonome (BASIC/GROSS/NET définis) -->
+            <field name="parent_id" eval="False"/>
+            <field name="rule_ids" eval="[
+                (4, ref('gvs_hr_payroll_tg.rule_tg_tech_jours')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_basic')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_ind_km')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_ind_trans')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_ind_tel')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_ind_log')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_hs')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_anc')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_hs20')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_hs40')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_hs65')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_hs100')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_autre_gain')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_sursal')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_cp')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_gross')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_cnss')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_brut_imp')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_abat28')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_charge')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_base_irpp')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_irpp')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_tcs')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_tot_ret_leg')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_net_ret_leg')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_ind_km_ni')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_autre_ind_nt')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_tot_ind_nt')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_av_sal')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_autre_ret')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_net')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_cnss_pat')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_cnss_ouv_4')),
+                (4, ref('gvs_hr_payroll_tg.rule_tg_tot_charge_pat')),
+            ]"/>
+        </record>
+
+    </data>
+</odoo>

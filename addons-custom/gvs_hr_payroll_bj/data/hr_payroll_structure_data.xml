@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            STRUCTURE SALARIALE — Paie Bénin (unique)
+
+            Une seule structure BJ_PAIE regroupant toutes les règles.
+            company_id = False : globale.
+            country_id = BJ   : isolation via ir.rule de gvs_hr_payroll_base.
+        -->
+        <record id="struct_bj" model="hr.payroll.structure">
+            <field name="name">Bénin — Paie</field>
+            <field name="code">BJ_PAIE</field>
+            <field name="parent_id" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bj"/>
+            <field name="rule_ids" eval="[
+                (4, ref('rule_bj_nb_jours')),
+                (4, ref('rule_bj_sb')),
+                (4, ref('rule_bj_pr_anc')),
+                (4, ref('rule_bj_sursal')),
+                (4, ref('rule_bj_fr_com')),
+                (4, ref('rule_bj_conges')),
+                (4, ref('rule_bj_ind_fonct')),
+                (4, ref('rule_bj_ind_trans')),
+                (4, ref('rule_bj_brut_imp')),
+                (4, ref('rule_bj_brut')),
+                (4, ref('rule_bj_its')),
+                (4, ref('rule_bj_cnss_sal')),
+                (4, ref('rule_bj_acompte')),
+                (4, ref('rule_bj_dette')),
+                (4, ref('rule_bj_srtb')),
+                (4, ref('rule_bj_tot_ret_sal')),
+                (4, ref('rule_bj_net')),
+                (4, ref('rule_bj_cnss_pat_av')),
+                (4, ref('rule_bj_cnss_pat_rp')),
+                (4, ref('rule_bj_cnss_pat_pf')),
+                (4, ref('rule_bj_vps')),
+                (4, ref('rule_bj_tot_pat')),
+            ]"/>
+        </record>
+
+    </data>
+</odoo>

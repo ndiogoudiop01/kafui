@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <template id="report_bulletin_paye_inherit" inherit_id="hr_payroll.report_payslip">
+
+        <xpath expr="//t[@t-call='web.external_layout']" position="replace">
+    <t t-call="web.html_container">
+        <t t-foreach="docs" t-as="o">
+          <t t-call="web.basic_layout">
+
+            <div class="page">
+                <style>
+				
+                    .cadre11 {
+
+                    font-size: x-large;
+                    border:2px solid #E2E2E0;
+                    padding: 1%;
+                    width: 420px;
+                    height: 50px;
+                    background-color : #E2E2E0;
+                    vertical-align: baseline;
+                    font-family:Calibri;
+                    }
+                    .cadre2 {
+                    font-size: small;
+                    border:1px solid #E2E2E0;
+                    padding: 1%;
+                    width: 100%;
+                    text-align:left;
+                    background-color : #E2E2E0;
+                    font-family:Calibri;
+                    }
+                    .periode {
+                    font-size:small;
+                    font-family:Calibri;
+                    }
+                    .font{
+
+                    font: 80% sans-serif;
+                    }
+
+                    td {padding:1%;border:1px solid #E2E2E0;text-align:right;font: 90% sans-serif; font-family:Calibri;
+                    }
+                    th {text-align:center;font-weight:bold;border:1px solid #E2E2E0; font-family: Calibri, Helvetica,
+                    sans-serif;}
+                    .centrer_th {padding:0.3%; background-color: #E5E5E5;font-weight: normal;border:solid black 1px;}
+
+                    .tableau3 {
+                    border-radius: 10px;
+                    width: 420px;
+                    border:1px solid #E2E2E0;
+                    font-family:Calibri, Arial, "Arial Black",Arial, Verdana, sans-serif;
+                    }
+                    .no_border_top {border-top:0px;}
+                    .no_border_bottom {border-bottom:0px;}
+                    .no_border {border:0;}
+                    .tableau2{
+                    font-family:Calibri;
+                    border:1px solid #6D6D6D;
+                    width: 332px;
+                    background-color: #EBEBEB;
+                    }
+                    .tableau6{
+                    width:100%
+                    border:solid white 1px;
+                    font-family:Calibri;
+                    width: 332px;
+                    }
+                    .t2, .t2_center {
+                    border : white;
+                    }
+                    .t2_center{
+                    text-align: center;
+                    }
+                    .top_20px{
+                    margin-top:20px;
+                    }
+                    .top_150px{
+                    margin-top:150px;
+                    }
+                    .top_20px{
+                    margin-top:20px;
+                    }
+                    .centrer{
+                    text-align:center;
+                    }
+                    .droite{
+                    text-align:right;
+                    }
+                    .gauche{
+                    text-align:left;
+                    }
+
+
+                    .tableau1 {
+                    width: 100%;
+                    margin-top:20px;
+                    border:0.5px solid #E2E2E0;
+                    font-family:Calibri, Arial, "Arial Black",Arial, Verdana, sans-serif;
+                    }
+
+
+                    table {
+                    border-collapse:separate;
+                    border:solid black 1px;
+                    border-radius:6px;
+                    -moz-border-radius:6px;
+                    }
+
+
+                </style>
+
+                <div class="oe_structure"/>
+         
+                   
+
+    <table class="table table-bordered"  style="font-family:Calibri;font-size: medium; border:solid black 1px;">
+				
+	<TR style="font-family:Calibri;font-size: medium; border:solid black 1px;">
+	<TH style="font-family:Calibri;font-size: medium; border:solid black 1px;"  colspan="4" class="cadre11" >
+	<img t-attf-src="data:image/*;base64,{{company_id.logo}}" t-att-alt="company_id.name"/></TH>
+
+	<TH style="font-family:Calibri;font-size: medium; border:solid black 1px;"  colspan="4" class="cadre11" ><h2 >BULLETIN DE PAIE</h2><P><span t-field="o.number"/></P></TH>
+	<TH style="font-family:Calibri;font-size: medium; border:solid black 1px;text-align:left;" colspan="4" bgcolor="#E2E2E0" ><P>Du: <span style="font-family:Verdana;font-size: small" t-field="o.date_from"/></P><P>  Au: <span style="font-family:Verdana;font-size: small" t-field="o.date_to"/></P></TH>
+	<TH style="font-family:Calibri;font-size: medium; border:solid black 1px;" colspan="4" bgcolor="#E2E2E0"><P style="text-align:left">Paiement le:  <span style="font-family:Verdana;font-size: small" t-field="o.datepaiem"/></P><P style="text-align:left">Mode de paiement:  <span style="font-family:Verdana;font-size: small" t-esc="o.contract_id.payment_mode_id.name"/></P></TH>
+	</TR>
+
+	<TR style="font-family:Calibri;font-size: medium; border:solid black 1px;">
+	<TD style="font-family:Calibri;font-size: medium; border:solid black 1px;text-align:left;border-radius: 10px" rowspan="4"  colspan="4" ><span style="font-family:Verdana;font-size: small" t-field="o.employee_id.company_id.street"/><span style="font-family:Verdana;font-size: small" t-field="o.employee_id.company_id.street2"/><P><span style="font-family:Verdana;font-size: small" t-field="o.employee_id.company_id.city"/></P><P>N°IF: <span style="font-family:Verdana;font-size: small" t-field="o.employee_id.company_id.idfiscal"/></P><P>N°INPS:<span style="font-family:Verdana;font-size: small" t-esc="o.employee_id.company_id.org_ss"/></P></TD>
+	
+
+	<TH style="font-family:Calibri;font-size: medium; border:solid black 1px;text-align:left" colspan="6" ><h3><span t-field="o.employee_id.name"/></h3><P style="text-align:left ;font-family:Verdana;font-size: small"></P></TH>
+	<TH  colspan="6" style="border:solid black 1px"><P style="text-align:left">Matricule: <span style="font-family:Verdana;font-size: small" t-field="o.employee_id.code2"/></P><P style="text-align:left">Département: <span style="font-family:Verdana;font-size: small" t-field="o.contract_id.department_id"/></P><P style="text-align:left">N°INPS: <span style="font-family:Verdana ;font-size: small" t-field="o.employee_id.matricule_cnss"/> </P><P style="text-align:left">N°CIN: <span style="font-family:Verdana ;font-size: small" t-field="o.employee_id.cin"/> </P> </TH>
+	</TR>
+	<TR>
+	<TH style="font-family:Calibri;font-size: medium; border:solid black 1px;" colspan="2">Categorie</TH> <TH colspan="2" style="font-family:Calibri;font-size: medium; border:solid black 1px;" >Fonction</TH>
+	<TH colspan="2" style="font-family:Calibri;font-size: medium; border:solid black 1px;">Embauche</TH><TH style="font-family:Calibri;font-size: medium; border:solid black 1px;" colspan="2">N°contrat</TH> <TH colspan="2" style="border:solid black 1px" >Parts</TH>
+	<TH colspan="2" style="border:solid black 1px">Ancienneté</TH></TR>
+	<TR>
+	<TD colspan="2" style="text-align:center; border:solid black 1px;" ><span style="font-family:Verdana;font-size: small" t-field="o.contract_id.categorie_id.name"/></TD>
+	<TD style="text-align:center;border:solid black 1px;" colspan="2" ><span style="font-family:Verdana;font-size: small" t-field="o.contract_id.job_id"/></TD><TD  style="text-align:center;border:solid black 1px" colspan="2" ><span style="font-family:Verdana;font-size: small" t-field="o.contract_id.date_start"/></TD>
+	<TD  style="text-align:center;border:solid black 1px" colspan="2"><span style="font-family:Verdana;font-size: small" t-field="o.contract_id.name"/></TD> <TD  style="text-align:center;border:solid black 1px" colspan="2" ><span style="font-family:Verdana;font-size: small"  t-esc="'%.0f'% o.employee_id.parts"/></TD>
+	<TD  style="text-align:center;border:solid black 1px" colspan="2" ><span style="font-family:Verdana;font-size: small" t-esc="'%.0f'% o.contract_id.anciennete"/></TD>
+	</TR>
+		
+	
+
+  </table>
+                <table class="table table-condensed" style="font-family:Calibri;font-size: medium; border:solid black 1px;">
+                   
+                        <tr >
+                            <th rowspan="4" class="centrer_th"><br/>Designation
+                            </th>
+                            <th rowspan="2" class="centrer_th"><br/>Base
+                            </th>
+							
+                       
+                           <th colspan="2" class="centrer_th">Part salariale
+                            </th>
+                        
+                            <th colspan="2" class="centrer_th">Part patronale
+                            </th>
+                        </tr>
+                        <tr style="font-family:Calibri;font-size: medium; border:solid black 1px;">
+						<th style="background-color:#EBEBEB !important" class="centrer_th">Taux/Quant.</th>
+                            <th style="background-color:#EBEBEB !important" class="centrer_th">Montant</th>
+                            <th style="background-color:#EBEBEB !important" class="centrer_th">Taux (%)</th>
+                            <th style="background-color:#EBEBEB !important" class="centrer_th">Montant</th>
+                        </tr>
+						
+						 <tbody>
+                        <tr t-foreach="o.line_ids.filtered(lambda line: line.appears_on_payslip)" t-as="line">
+                            <td height="2" class="gauche" style="font-family:Calibri;font-size: medium; border:solid black 1px;">
+                                <span t-field="line.name"/>
+                            </td>
+                            <td height="2" style="font-family:Calibri;font-size: medium; border:solid black 1px;">
+                                <t t-if="line.code not in ['IR','HS15','HS35','HS40','HS50','HS60','HS100','ANH','ANJ','CPP','WDAYS','WHOURS','THOR','CMH','CMD','CMP','CMN','CMF','IRPP','AMOS','AMOP','CSS','NET','BASE','IPRESS','ANC','IPRESSC', 'IPRESP','IPRESPC','CSSPF','CSSAT','CFCE','TRIMF']">
+                                <span t-esc="'%.0f'% line.amount or ''"/>
+                                </t>
+                                <t t-if="line.code  in ['HS15','HS35','HS40','HS50','HS60','HS100','CMH','ANH']">
+                              <span t-esc="'%.0f'% o.thor_total"/>
+                                </t>
+								<t t-if="line.code  in ['CMD','CMP','CMN','CMF','ANJ']">
+                              <span t-esc="'%.0f'% o.tjour_total"/>
+                                </t>
+								
+								<t t-if="line.code  in ['WDAYS']">
+                              <span t-esc="'%.0f'% o.employee_id.jours_t"/>
+                                </t>
+								<t t-if="line.code  in ['WHOURS']">
+                             <span t-esc="'%.0f'% o.employee_id.heures_t"/>
+                                </t>
+								
+							    <t t-if="line.code  in ['CSSPF','CSSAT']">
+                                <span t-esc="'%.0f'% min((o.gross_wage),o.employee_id.company_id.plafond1)"/>
+                                </t>
+                                <t t-if="line.code  in ['IPRESP','IPRESS']">
+                                <span t-esc="'%.0f'% min((o.gross_wage),o.employee_id.company_id.plafond2)"/>
+                                </t>
+                                <t t-if="line.code  in ['IPRESPC','IPRESSC']">
+                                <span t-esc="'%.0f'% min((o.gross_wage),o.employee_id.company_id.plafond3)"/>
+                                </t>
+                                <t t-if="line.code  in ['AMOS','AMOP']">
+                                <span t-esc="'%.0f'% min((o.gross_wage),o.employee_id.company_id.plafond4)"/>
+                                </t>
+
+								  <t t-if="line.code == 'IR'">
+                                <span t-esc="'%.0f'% o.irpp_total"/>
+                                </t>
+								  <t t-if="line.code == 'ANC'">
+                              	<span t-esc="'%.0f'% o.contract_id.wage"/>
+                                </t>
+								
+								 <t t-if="line.code == 'TRIMF'">
+                              	<span t-esc="'%.0f'% o.gross_wage"/>
+                                </t>
+
+								
+                               <t t-if="line.code == 'CFCE'">
+                              	<span t-esc="'%.0f'% o.gross_wage"/>
+                                </t>
+                             
+
+
+                                <t t-if="line.amount_select not in ['code','percentage']">
+                                    <span></span>
+                                </t>
+                    
+
+                            </td>
+                            <td style="font-family:Calibri;font-size: medium; border:solid black 1px;">
+                                <t t-if="line.code not in ['ANH','ANJ','CPP','WDAYS','WHOURS','THOR','TJOUR','CMH','CMD','CMP','CMN','CMF','HS15','HS35','HS40','HS50','HS60','HS100','IPRESS','IPRESSC','IPRESP','IPRESPC','CSSPF','CSSAT','CFCE','AMOS','AMO','BASE','NET','TRIMF','CFCE']">
+                                   <span>-</span>
+                                </t>
+								
+								<t t-if="line.code == 'WHOURS'">
+                                 
+								<span t-esc="'%.0f'% o.whours_total"/>
+                                </t>
+                                <t t-if="line.code == 'THOR'">
+                                 
+							<span t-esc="'%.0f'% o.thor_total"/>
+                                </t>
+
+                              <t t-if="line.code == 'WDAYS'">
+								<span t-esc="'%.0f'% o.wdays_total"/>
+                                </t> 
+                                <t t-if="line.code == 'TJOUR'">
+                                 
+							   <span t-esc="'%.0f'% o.tjour_total"/>
+                                </t>
+
+								<t t-if="line.code  in ['HS15']">
+                                <span t-esc="'%.0f'% o.employee_id.heure_15"/>
+                                </t>
+							 		
+								<t t-if="line.code  in ['HS35']">
+                                <span t-esc="'%.0f'% o.employee_id.heure_35"/>
+                                </t>
+
+								<t t-if="line.code  in ['HS40']">
+                                <span t-esc="'%.0f'% o.employee_id.heure_40"/>
+                                </t>
+								
+								<t t-if="line.code  in ['HS50']">
+                                <span t-esc="'%.0f'% o.employee_id.heure_50"/>
+                                </t>								
+								
+								<t t-if="line.code  in ['HS60']">
+                                <span t-esc="'%.0f'% o.employee_id.heure_60"/>
+                                </t>								
+								<t t-if="line.code  in ['HS100']">
+                                <span t-esc="'%.0f'% o.employee_id.heure_100"/>
+                                </t>
+						
+                                <t t-if="line.code  in ['ANH']">
+                                <span t-esc="'%.0f'% o.employee_id.absence_n_h"/>
+                                </t>
+							 		
+								<t t-if="line.code  in ['ANJ']">
+                                <span t-esc="'%.0f'% o.employee_id.absence_n_j"/>
+                                </t>
+
+								<t t-if="line.code  in ['CPP']">
+                                <span t-esc="'%.0f'% o.employee_id.conge_pris"/>
+                                </t>
+								
+								<t t-if="line.code  in ['CMH']">
+                                <span t-esc="'%.0f'% o.employee_id.conge_maladie_h"/>
+                                </t>								
+								
+								<t t-if="line.code  in ['CMD']">
+                                <span t-esc="'%.0f'% o.employee_id.conge_maladie_j"/>
+                                </t>								
+								<t t-if="line.code  in ['CMP']">
+                                <span t-esc="'%.0f'% o.employee_id.conge_paye"/>
+                                </t>
+								<t t-if="line.code  in ['CMN']">
+                                <span t-esc="'%.0f'% o.employee_id.conge_naissance"/>
+                                </t>	
+
+								<t t-if="line.code  in ['CMF']">
+                                <span t-esc="'%.0f'% o.employee_id.conge_evenement"/>
+                                </t>
+								
+							 <t t-if="line.code == 'IPRESS'">
+                                 
+								<span t-esc="'%.2f'% o.employee_id.company_id.t_ipres_s"/>%
+                                </t>
+								
+								 <t t-if="line.code == 'IPRESSC'">
+                                 
+								<span t-esc="'%.2f'% o.employee_id.company_id.t_ipres_sc"/>%
+                                </t>	
+								
+								 <t t-if="line.code == 'AMOS'">
+                                 
+								<span t-esc="'%.2f'% o.employee_id.company_id.t_amos"/>%
+                                </t>
+
+                                <t t-if="line.code  in ['NETM']">
+								<span></span>
+                                </t>
+								
+								<t t-if="line.code == 'ANC'">
+								<span t-esc="'%.0f'% o.contract_id.anciennete"/>(ans) 
+                                </t>
+
+                                <t t-if="line.code == 'EPART'">
+								<span t-esc="'%.2f'% o.employee_id.part"/> (parts)
+                                </t>
+
+
+                                <!-- <t t-if="line.code == 'AVSAL'"> -->
+								<!-- <span t-esc="'%.0f'% o.employee_id.avance"/>  -->
+                                <!-- </t> -->
+
+                                <!-- <t t-if="line.code == 'RETN'"> -->
+								<!-- <span t-esc="'%.0f'% o.employee_id.retenues"/> -->
+                                <!-- </t> -->
+                                 <!-- <t t-if="line.code == 'RPRET'"> -->
+								<!-- <span t-esc="'%.0f'% o.employee_id.montatdeduire"/>  -->
+                                <!-- </t> -->
+
+                            </td>
+
+                            <td style="font-family:Calibri;font-size: medium; border:solid black 1px;">
+                                 <t t-if="line.code not in ['WDAYS','WHOURS','IPRESP','IPRESPC','CSSPF','CSSAT','CFCE','AMOP']">
+                                      <span t-esc="'%.0f'% line.total or ''"/>
+                                </t>
+                            </td>
+							
+							 <td style="font-family:Calibri;font-size: medium; border:solid black 1px;">
+                              
+                              <t t-if="line.code == 'IPRESP'">
+                                    <span t-esc="'%.2f'% o.employee_id.company_id.t_ipres_p"/>%
+                                </t>
+								 <t t-if="line.code == 'IPRESPC'">
+                                    <span t-esc="'%.2f'% o.employee_id.company_id.t_ipres_pc"/>%
+                                </t>
+									<t t-if="line.code == 'CSSPF'">
+                                    <span t-esc="'%.2f'% o.employee_id.company_id.t_pfam"/>%
+                                </t>
+								  	<t t-if="line.code == 'CSSAT'">
+                                    <span t-esc="'%.2f'% o.employee_id.company_id.accid_trv"/>%
+                                </t>
+
+								  
+								<t t-if="line.code == 'CFCE'">
+                                    <span t-esc="'%.2f'% o.employee_id.company_id.t_tcf"/>%
+                                </t>
+								
+								<t t-if="line.code == 'AMOP'">
+                                    <span t-esc="'%.2f'% o.employee_id.company_id.t_amop"/>%
+                                </t>
+						
+								
+                            </td>
+                            <td style="font-family:Calibri;font-size: medium; border:solid black 1px;">
+                                <t t-if="line.code in ['INPSP','IPRESPC','IPRESP','CSSPF','CSSAT','CFCE','AMOP']">
+                                    <span t-esc="'%.0f'% line.total or ''"/>
+                                </t>
+                            </td>
+
+
+                        </tr>
+
+
+                    </tbody>
+						
+						
+                   </table>
+				   
+
+
+
+						
+				   
+		                      <table class="table">
+                        <thead>
+                            <tr style="background-color:#EBEBEB !important" >
+							 
+                                 <th style="font-family:Calibri;font-size: small; border:solid black 1px;" class="active">Salaire Brut</th>
+                                 <th style="font-family:Calibri;font-size: small; border:solid black 1px;" class="active">Cotistions Sociales</th>
+                                 <th style="font-family:Calibri;font-size: small; border:solid black 1px;" class="active">Impôts(IR)</th>
+                                 <th style="font-family:Calibri;font-size: small; border:solid black 1px;" class="active">Salaire Net</th>
+                      </tr>
+                        </thead>
+						
+                        <tbody>
+                            <tr>
+							   
+                                <td style="font-family:Calibri;font-size: small; border:solid black 1px;" class="text-center" ><span t-esc="'%.0f'% o.gross_wage"/></td>
+                                <td style="font-family:Calibri;font-size: small; border:solid black 1px;" class="text-center" ><span t-esc="'%.0f'% o.salc_total"/></td>
+                                <td style="font-family:Calibri;font-size: small; border:solid black 1px;" class="text-center" ><span t-esc="'%.0f'% o.ir_total"/></td>
+                                <td style="font-family:Calibri;font-size: small; border:solid black 1px;" class="text-center" ><span t-esc="'%.0f'% o.net_total"/></td>
+
+							</tr>  
+					
+							
+							</tbody>
+                    </table> 
+
+				   			            <table style="width:40%">
+
+<tr style="background-color:#EBEBEB !important" >
+
+<td style="border:solid black 1px;font-family:Calibri;font-size: medium" class="text-left">Mode de paiement </td><td style="border:solid black 1px;font-family:Calibri;font-size: medium" class="text-middle"> <span t-esc="o.contract_id.payment_mode or ''"/></td>
+
+</tr>
+</table>
+<br/>  
+		 <table  style="width:40%">
+	<TR style="background-color:#EBEBEB !important" >
+	<TH style="font-family:Calibri;font-size: medium; border:solid black 1px;" colspan="6">Congé</TH>
+	</TR>
+    	<TR>
+	<TH style="text-align:center;border:solid black 1px;" colspan="2">Acquis</TH>
+	<TH style="text-align:center;border:solid black 1px;" colspan="2">Pris</TH>
+	<TH style="text-align:center;border:solid black 1px;" colspan="2" >Restant</TH>
+</TR>
+	<TR>
+	<TD style="text-align:center;border:solid black 1px;" colspan="2"> <span style="font-family:Verdana;font-size: small" t-esc="'%.0f'% o.employee_id.leave"/></TD>
+	<TD style="text-align:center;border:solid black 1px;" colspan="2"><span style="font-family:Verdana;font-size: small" t-esc="'%.0f'% o.employee_id.cpris"/></TD>
+	<TD style="text-align:center;border:solid black 1px;" colspan="2" ><span style="font-family:Verdana;font-size: small" t-esc="'%.0f'% o.employee_id.crest"/></TD>
+</TR>
+ </table>							  
+
+                    
+                				
+       
+	<br/>   
+	
+	<p class="mt30">Pour faire valoir vos droits, Conservez ce bulletin de paie sans limitation de durée.</p><br/> <br/>   
+	   			            <table class="table">
+
+<tr>
+<td style="font-family:Calibri;font-size: medium;text-align: left; " class="text-left">Signature de l'employeur</td>
+<td style="font-family:Calibri;font-size: medium">Signature de l'employé</td>
+
+
+</tr>
+
+
+						</table>
+	   
+
+
+                    
+                				
+       
+       
+         </div>
+		  
+    </t>   
+         </t>  
+		  
+    </t>
+	</xpath>
+</template>
+</odoo>

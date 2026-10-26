@@ -1,0 +1,1734 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  
+    <record id="structure_type_employe_sn" model="hr.payroll.structure.type">
+        <field name="name">Paie Sénégal</field>
+        <field name="country_id" eval="False"/>
+    </record>
+
+    <!-- Salary Structure -->
+    <record id="hr_payroll_salary_structure_senegal" model="hr.payroll.structure">
+        <field name="name">Paie Sénégal</field>
+        <field name="country_id" eval="False"/>
+				<field name="use_worked_day_lines" eval="False"/>
+        <field name="type_id" ref="structure_type_employe_sn"/>
+    </record>
+	    <record id="structure_type_employe_sn" model="hr.payroll.structure.type">
+        <field name="default_struct_id" ref="hr_payroll_salary_structure_senegal"/>
+    </record>
+	
+	
+	<!-- HR SALARY RULES-->
+	    <function model="hr.salary.rule" name="write">
+        <value model="hr.salary.rule" search="[
+            ('struct_id', '=', ref('hr_payroll_seng.hr_payroll_salary_structure_senegal')),
+            ('code', '=', 'BASIC')]"/>
+        <value eval="{
+            'code': 'BASE',
+            'name': 'Salaire de base mensuel',			
+            'sequence': 2
+			}"/>
+			
+    </function>
+		
+	
+	<!-- HR SALARY RULES-->
+         <record id="hr_rule_basic_hor" model="hr.salary.rule">
+            <field name="name">Salaire de base </field>
+            <field name="sequence">2</field>
+            <field name="code">BASE</field>
+            <field name="category_id" ref="hr_payroll.BASIC"/>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = employee.mode_pay =='hourly' </field>
+            <field name="amount_select">code</field>
+
+        <field name="amount_python_compute">
+if employee.d_point == 'systeme': 
+    result = contract.wageh*(worked_days.WORK100 and worked_days.WORK100.number_of_hours)
+if employee.d_point ==  'encours': 
+    result = contract.wageh*employee.hours_this_month
+if employee.d_point  == 'dernier':  
+    result = contract.wageh*employee.hours_last_month		
+if employee.d_point  == 'manuel':  
+    result = contract.wageh*employee.hrs_trav_cemois
+
+	    </field>			
+        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>	  
+	  
+	  </record>	
+
+
+<record id="hr_rule_basic_jr" model="hr.salary.rule">
+            <field name="name">Salaire de base </field>
+            <field name="sequence">2</field>
+            <field name="code">BASE</field>
+            <field name="category_id" ref="hr_payroll.BASIC"/>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = employee.mode_pay =='day' </field>
+            <field name="amount_select">code</field>
+
+        <field name="amount_python_compute">
+if employee.d_point == 'systeme': 
+    result = contract.waged*(worked_days.WORK100 and worked_days.WORK100.number_of_days)
+if employee.d_point ==  'encours': 
+    result = contract.waged*employee.days_this_month
+if employee.d_point  == 'dernier':  
+    result = contract.waged*employee.days_last_month		
+if employee.d_point  == 'manuel':  
+    result = contract.waged*categories['WDAYS']
+
+	    </field>			
+        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>	  
+	  
+	  </record>	
+
+	<record id="hr_payroll_ci_rules_maj" model="hr.salary.rule">
+        <field name="category_id" ref="hr_payroll.BASIC"/>
+        <field name="name">Majoration selon catégorie</field>
+        <field name="code">MAJ</field>
+        <field name="sequence">3</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = contract.categorie_id.taux>0 and contract.maj_bool == True </field>
+		<field name="amount_select">code</field>
+		<field name="amount_python_compute">result =(contract.wage*contract.categorie_id.taux)/100</field>	
+        <field name="appears_on_payslip" eval="True"/>
+	  <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>		
+    </record>
+
+
+	<record id="hr_payroll_ci_rules_basemaj" model="hr.salary.rule">
+        <field name="category_id" ref="other_totals"/>
+        <field name="name">Salaire majoré</field>
+        <field name="code">BASEMAJ</field>
+        <field name="sequence">3</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = contract.categorie_id.taux>0 and contract.maj_bool == True </field>
+		<field name="amount_select">code</field>
+		<field name="amount_python_compute">result =contract.BASE+MAJ</field>	
+        <field name="appears_on_payslip" eval="True"/>
+	  <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>		
+    </record>
+
+    <record id="hr_rule_new_worked_hours" model="hr.salary.rule">
+        <field name="name">Heures travaillées</field>
+        <field name="category_id" ref="WHOURS"/>
+        <field name="code">WHOURS</field>
+        <field name="sequence">1</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result = contract.pay_period=='hourly' or contract.pay_period=='monthly'</field>		
+        <field name="appears_on_payslip" eval="True"/>
+    	<field name="amount_select">code</field>
+        <field name="amount_python_compute">
+
+val= employee.jrs_trav_cemois_m - (employee.absence_n_j + employee.conge_maladie_j  + employee.conge_naissance + employee.conge_evenement)
+val2 = (val*employee.heures_t)/employee.jours_t
+result = (worked_days.WORK100 and worked_days.WORK100.number_of_hours if employee.d_point == 'systeme'
+else (employee.hrs_trav_cemois - employee.conge_maladie_h - employee.absence_n_h) if employee.d_point == 'manuel' and contract.pay_period=='hourly'
+else employee.hours_last_month if employee.d_point == 'dernier' 
+else employee.hours_this_month if employee.d_point == 'encours' 
+else (val2 - employee.conge_maladie_h - employee.absence_n_h) if employee.d_point  == 'manuel' and contract.pay_period=='monthly'
+else 208)
+
+
+		 </field>
+		
+		    <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+    </record>	
+
+    <record id="hr_rule_new_worked_days" model="hr.salary.rule">
+        <field name="name">Jours prestés</field>
+        <field name="category_id" ref="WDAYS"/>
+        <field name="code">WDAYS</field>
+        <field name="sequence">1</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result = contract.pay_period=='day' or contract.pay_period=='monthly'</field>			
+        <field name="appears_on_payslip" eval="True"/>
+    	<field name="amount_select">code</field>
+        <field name="amount_python_compute">
+		
+val= 	employee.conge_maladie_j  + employee.conge_naissance + employee.conge_evenement+employee.ferie_j+employee.at_j+employee.absence_n_j+employee.sanc_j+employee.conge_circonstance
+		
+result = (worked_days.WORK100 and worked_days.WORK100.number_of_days if employee.d_point == 'systeme'
+else employee.jrs_trav_cemois - val if employee.d_point == 'manuel' and contract.pay_period=='hourly'
+else employee.jrs_trav_cemois - val if employee.d_point == 'manuel' and contract.pay_period=='day'
+else employee.jrs_trav_cemois_m - val if employee.d_point  == 'manuel' and contract.pay_period=='monthly'
+else employee.days_last_month if employee.d_point == 'dernier' 
+else employee.days_this_month if employee.d_point == 'encours' 
+else employee.jours_t)	
+
+		 </field>		
+		    <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+    </record>
+
+
+        <record id="hr_rule_basic_percentage" model="hr.salary.rule">
+            <field name="name">Prorata</field>
+             <field name="sequence">4</field>
+            <field name="code">BASEP</field>
+            <field name="category_id" ref="BASEP"/>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = contract.prorata == True </field>
+            <field name="amount_select">code</field>
+        <field name="amount_python_compute">
+
+val= categories['WDAYS']
+val2 = employee.jours_t
+	
+result = (((worked_days.WORK100 and worked_days.WORK100.number_of_days)/employee.jours_t) if(contract.pay_period=='monthly' and employee.d_point == 'systeme')
+else (val/val2) if contract.pay_period == 'monthly' and employee.d_point == 'manuel'
+else (employee.days_this_month/employee.jours_t) if (contract.pay_period=='monthly' and employee.d_point == 'encours')
+else (employee.days_last_month/employee.jours_t) if (contract.pay_period=='monthly' and employee.d_point == 'dernier')
+else 1)
+
+	    </field>
+           <field name="appears_on_payslip" eval="False"/>	
+		       <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>
+
+
+		    <record id="hr_payroll_t_horaire" model="hr.salary.rule">
+			<field name="code">THOR</field>
+			<field name="name">Taux horaire</field>
+			<field name="category_id" ref="THOR"/>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result = contract.pay_period=='hourly'</field>				
+			
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">
+		
+result = ((contract.wage/employee.heures_t) if contract.pay_period=='monthly' 
+else contract.wageh if contract.pay_period=='hourly'
+else contract.waged/8 if contract.pay_period=='day'
+else 0)			
+
+			</field>
+			<field name="appears_on_payslip" eval="True"/>
+		 <field name="sequence">4</field>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+		 
+	    </record>	
+
+		<record id="hr_payroll_t_journalier" model="hr.salary.rule">
+			<field name="code">TJOUR</field>
+			<field name="name">Taux Journalier</field>
+			<field name="category_id" ref="TJOUR"/>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result = contract.pay_period=='day' or contract.pay_period=='monthly'</field>				
+			
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">
+			
+			
+result = ((contract.wage/employee.jours_t) if contract.pay_period=='monthly' 
+else contract.waged*8 if contract.pay_period=='hourly'
+else contract.waged if contract.pay_period=='day'
+else 0)	
+
+			</field>
+			<field name="appears_on_payslip" eval="True"/>
+		    <field name="sequence">4</field>
+		    <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+		 
+	     </record>
+
+
+
+
+
+        <record id="hr_payroll_hs15" model="hr.salary.rule">
+            <field name="code">HS15</field>
+            <field name="name">Heures supplémentaires 15%</field>
+            <field name="category_id" ref="HS"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.heure_15>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.heure_15*categories['THOR']*1.15</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="20"/>	
+ <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>	
+
+			
+        </record>
+
+        <record id="hr_payroll_hs35" model="hr.salary.rule">
+            <field name="code">HS35</field>
+            <field name="name">Heures supplémentaires 35%</field>
+            <field name="category_id" ref="HS"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.heure_35>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.heure_35*categories['THOR']*1.35</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="21"/>		
+ <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+        <record id="hr_payroll_hs40" model="hr.salary.rule">
+            <field name="code">HS40</field>
+            <field name="name">Heures supplémentaires 40%</field>
+            <field name="category_id" ref="HS"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.heure_40>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.heure_40*categories['THOR']*1.40</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="22"/>		
+ <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+        <record id="hr_payroll_hs50" model="hr.salary.rule">
+            <field name="code">HS50</field>
+            <field name="name">Heures supplémentaires 50%</field>
+            <field name="category_id" ref="HS"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.heure_50>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.heure_50*categories['THOR']*1.50</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="23"/>			
+         <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+        <record id="hr_payroll_hs60" model="hr.salary.rule">
+            <field name="code">HS60</field>
+            <field name="name">Heures supplémentaires 60%</field>
+            <field name="category_id" ref="HS"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.heure_60>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.heure_60*categories['THOR']*1.60</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="24"/>			
+        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+        <record id="hr_payroll_hs100" model="hr.salary.rule">
+            <field name="code">HS100</field>
+            <field name="name">Heures supplémentaires 100%</field>
+            <field name="category_id" ref="HS"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.heure_100>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.heure_100*categories['THOR']*2</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="24"/>			
+             <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+
+        <record id="hr_payroll_njh" model="hr.salary.rule">
+            <field name="code">ANH</field>
+            <field name="name">Absence non justifiée en heures</field>
+            <field name="category_id" ref="CNG"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.absence_n_h >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = - employee.absence_n_h*categories['THOR']</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="30"/>
+		    <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>
+
+
+        <record id="hr_payroll_njJ" model="hr.salary.rule">
+            <field name="code">ANJ</field>
+            <field name="name">Absence non justifiée en jours</field>
+            <field name="category_id" ref="other_totals"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.absence_n_j >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.absence_n_j</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="31"/>
+		    <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>
+
+        <record id="hr_payroll_sanc" model="hr.salary.rule">
+            <field name="code">SANC</field>
+            <field name="name">Jours de sanction</field>
+            <field name="category_id" ref="other_totals"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.sanc_j >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.sanc_j</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="32"/>
+		    <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>
+        <record id="hr_payroll_cmh" model="hr.salary.rule">
+            <field name="code">CMH</field>
+            <field name="name">Congé Maladie en heures(absence)</field>
+            <field name="category_id" ref="CNG"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.conge_maladie_h >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result =  employee.conge_maladie_h*categories['THOR']*employee.t_conge_maladie</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="33"/>
+		    <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>
+		
+           <record id="hr_payroll_cmd" model="hr.salary.rule">
+            <field name="code">CMD</field>
+            <field name="name">Congé Maladie en jours(absence)</field>
+            <field name="category_id" ref="CNG"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.conge_maladie_j >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result =  employee.conge_maladie_j*categories['TJOUR']*2/3</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="34"/>
+			 <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>		
+		
+	
+
+
+           <record id="hr_payroll_cmp" model="hr.salary.rule">
+            <field name="code">CMP</field>
+            <field name="name">Congé Payé en jours</field>
+            <field name="category_id" ref="other_totals"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.conge_paye >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.conge_paye</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="35"/>
+	        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>
+		
+	        <record id="hr_payroll_cpp" model="hr.salary.rule">
+            <field name="code">CPP</field>
+            <field name="name">Congé pris en jours</field>
+            <field name="category_id" ref="other_totals"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.conge_pris >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.conge_pris</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="36"/>
+	        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>	
+		
+		
+		
+           <record id="hr_payroll_cmn" model="hr.salary.rule">
+            <field name="code">CMN</field>
+            <field name="name">Congé de naissance</field>
+            <field name="category_id" ref="other_totals"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.conge_naissance >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.conge_naissance</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="37"/>
+           <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>		
+		
+           <record id="hr_payroll_ccr" model="hr.salary.rule">
+            <field name="code">CCR</field>
+            <field name="name">Congé circonstance</field>
+            <field name="category_id" ref="CNG"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.conge_circonstance >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.conge_circonstance*categories['TJOUR']</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="38"/>
+			 <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>
+		
+           <record id="hr_payroll_cmf" model="hr.salary.rule">
+            <field name="code">CMF</field>
+            <field name="name">Congé pour événements familiaux</field>
+            <field name="category_id" ref="other_totals"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.conge_evenement >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.conge_evenement*categories['TJOUR']</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="39"/>
+			 <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>
+
+           <record id="hr_payroll_at" model="hr.salary.rule">
+            <field name="code">CAT</field>
+            <field name="name">Congé accidents de travail</field>
+            <field name="category_id" ref="CNG"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.at_j >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.at_j*categories['TJOUR']</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="40"/>
+			 <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>
+
+           <record id="hr_payroll_ferie" model="hr.salary.rule">
+            <field name="code">JFER</field>
+            <field name="name">Jours fériés</field>
+            <field name="category_id" ref="CNG"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = employee.ferie_j >0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = employee.ferie_j*categories['TJOUR']</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="41"/>
+			 <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>
+
+	
+
+
+
+
+	<record id="hr_payroll_seng_anc" model="hr.salary.rule">
+			<field name="name">Prime d'ancienneté</field>
+			<field name="category_id" ref="ALW"/>
+			<field name="code">ANC</field>
+			<field name="sequence">42</field>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.anciennete &gt;= 2 and contract.anciennet_bol == True </field>
+			<field name="amount_select">code</field>
+			<field name="amount_python_compute">result = (((contract.wage )*0.25) if contract.anciennete &gt;= 25
+
+else (contract.wage)*0.24 if ((contract.anciennete &gt;= 24.000) and (contract.anciennete &lt;= 24.99))
+else (contract.wage)*0.23 if ((contract.anciennete &gt;= 23.000) and (contract.anciennete &lt;= 23.99))
+else (contract.wage)*0.22 if ((contract.anciennete &gt;= 22.000) and (contract.anciennete &lt;= 22.99))
+else (contract.wage)*0.21 if ((contract.anciennete &gt;= 21.000) and (contract.anciennete &lt;= 21.99))
+else (contract.wage)*0.20 if ((contract.anciennete &gt;= 20.000) and (contract.anciennete &lt;= 20.99))
+else (contract.wage)*0.19 if ((contract.anciennete &gt;= 19.000) and (contract.anciennete &lt;= 19.99))
+else (contract.wage)*0.18 if ((contract.anciennete &gt;= 18.000) and (contract.anciennete &lt;= 18.99))
+else (contract.wage)*0.17 if ((contract.anciennete &gt;= 17.000) and (contract.anciennete &lt;= 17.99))
+else (contract.wage)*0.16 if ((contract.anciennete &gt;= 16.000) and (contract.anciennete &lt;= 16.99))
+else (contract.wage)*0.15 if ((contract.anciennete &gt;= 15.000) and (contract.anciennete &lt;= 15.99))
+else (contract.wage)*0.14 if ((contract.anciennete &gt;= 14.000) and (contract.anciennete &lt;= 14.99))
+else (contract.wage)*0.13 if ((contract.anciennete &gt;= 13.000) and (contract.anciennete &lt;= 13.99)) 			
+else (contract.wage)*0.12 if ((contract.anciennete &gt;= 12.000) and (contract.anciennete &lt;= 12.99))
+else (contract.wage)*0.11 if ((contract.anciennete &gt;= 11.000) and (contract.anciennete &lt;= 11.99)) 			
+else (contract.wage)*0.1 if ((contract.anciennete &gt;= 10.000) and (contract.anciennete &lt;= 10.99)) 				
+else (contract.wage)*0.09 if ((contract.anciennete &gt;= 9.000) and (contract.anciennete &lt;= 9.99)) 			
+else (contract.wage)*0.08 if ((contract.anciennete &gt;= 8.00) and (contract.anciennete &lt;= 8.99))			
+else (contract.wage)*0.07 if ((contract.anciennete &gt;= 7.00) and (contract.anciennete &lt;= 7.99)) 				
+else (contract.wage)*0.06 if ((contract.anciennete &gt;= 6.000) and (contract.anciennete &lt;= 6.99)) 			
+else (contract.wage)*0.05 if ((contract.anciennete &gt;= 5.00) and (contract.anciennete &lt;= 5.99)) 			
+else (contract.wage)*0.04 if ((contract.anciennete &gt;= 4.000) and (contract.anciennete &lt;= 4.99)) 
+else (contract.wage)*0.03  if ((contract.anciennete &gt;= 3.000) and (contract.anciennete &lt;= 3.99)) 
+else (contract.wage)*0.02 if ((contract.anciennete &gt;= 2) and (contract.anciennete &lt;= 2.99))  
+else -0)
+    </field>
+	
+	
+	
+
+	      <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+			<record id="hr_payroll_seng_sursal" model="hr.salary.rule">
+            <field name="code">SURSAL</field>
+            <field name="name">Sur Salaire</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.sursal>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.sursal</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="50"/>
+            <field name="note">Sur salaire</field>
+     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+                </record>
+
+			<record id="hr_payroll_seng_imont" model="hr.salary.rule">
+            <field name="code">IMONT</field>
+            <field name="name">Indemnité de monture</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.monture>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.monture</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="51"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>		
+		
+			<record id="hr_payroll_seng_icais" model="hr.salary.rule">
+            <field name="code">ICAIS</field>
+            <field name="name">Indemnité de caisse</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.indem_caisse>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.indem_caisse</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="52"/>
+     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>		
+
+		<record id="hr_salary_rule_repr" model="hr.salary.rule">
+            <field name="code">IRES</field>
+            <field name="name">Indemnité de responsabilité</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.prime_repr>0 </field>
+            <field name="amount_python_compute">result = contract.prime_repr</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="53"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_salary_rule_ptrv" model="hr.salary.rule">
+            <field name="code">PTRV</field>
+            <field name="name">Primes de travail</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.prime_trav>0 </field>
+            <field name="amount_python_compute">result = contract.prime_trav</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="54"/>
+     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_salary_rule_iequi" model="hr.salary.rule">
+            <field name="code">IEQUI</field>
+            <field name="name">Indemnité d’Équipement</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.prime_outil>0 </field>
+            <field name="amount_python_compute">result = contract.prime_outil</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="55"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_salary_rule_idepl" model="hr.salary.rule">
+            <field name="code">IDEPL</field>
+            <field name="name">Indemnité de déplacement</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.indem_depl>0 </field>
+            <field name="amount_python_compute">result = contract.indem_depl</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="56"/>
+     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+		
+		<record id="hr_salary_rule_itrsp" model="hr.salary.rule">
+            <field name="code">ITRSP</field>
+            <field name="name">Indemnité de transport</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.indem_transp>0 </field>
+            <field name="amount_python_compute">result = contract.indem_transp</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="57"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_salary_rule_log" model="hr.salary.rule">
+            <field name="code">IDLOG</field>
+            <field name="name">Indemnités de logement</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.prime_loge>0 </field>
+            <field name="amount_python_compute">result = contract.prime_loge</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="58"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_salary_rule_vch" model="hr.salary.rule">
+            <field name="code">IDVC</field>
+            <field name="name">Indemnités vie chère/bouche</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.viechere>0 </field>
+            <field name="amount_python_compute">result = contract.viechere</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="59"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+
+		<record id="hr_salary_rule_idepy" model="hr.salary.rule">
+            <field name="code">IDEPY</field>
+            <field name="name">Indemnités de Dépaysement</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.indem_depays>0 </field>
+            <field name="amount_python_compute">result = contract.indem_depays</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="59"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_salary_rule_fvoy" model="hr.salary.rule">
+            <field name="code">FVOY</field>
+            <field name="name">Frais de voyage</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.indem_voyage>0 </field>
+            <field name="amount_python_compute">result = contract.indem_voyage</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="60"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_salary_rule_ilic" model="hr.salary.rule">
+            <field name="code">ILIC</field>
+            <field name="name">Indemnité de licenciement</field>
+            <field name="category_id" ref="ILIC"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.indem_licen>0 </field>
+            <field name="amount_python_compute">result = contract.indem_licen</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="61"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_salary_rule_idep" model="hr.salary.rule">
+            <field name="code">IDEP</field>
+            <field name="name">Indemnité de départ ou mise à la retraite</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.indem_depart>0 </field>
+            <field name="amount_python_compute">result = contract.indem_depart</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="62"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_salary_rule_alstg" model="hr.salary.rule">
+            <field name="code">AlSTG</field>
+            <field name="name">Allocations de stage</field>
+            <field name="category_id" ref="AlSTG"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.alloc_stage>0 </field>
+            <field name="amount_python_compute">result = contract.alloc_stage</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="63"/>
+     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>      
+
+		<record id="hr_salary_rule_frfon" model="hr.salary.rule">
+            <field name="code">FRFON</field>
+            <field name="name">Frais inhérents à la fonction</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.frais_fonc>0 </field>
+            <field name="amount_python_compute">result = contract.frais_fonc</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="64"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+
+			<record id="hr_salary_rule_AIDMED" model="hr.salary.rule">
+            <field name="code">AIDMED</field>
+            <field name="name">Aide médicale</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.aide_medicale>0 </field>
+            <field name="amount_python_compute">result = contract.aide_medicale</field>
+			<field name="appears_on_payslip" eval="True"/>
+        
+            <field name="sequence" eval="65"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+		
+		
+			<record id="hr_salary_rule_lait" model="hr.salary.rule">
+            <field name="code">PLAIT</field>
+            <field name="name">Prime de Lait et Poussière</field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.prime_laitp>0 </field>
+            <field name="amount_python_compute">result = contract.prime_laitp</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="66"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>	 
+   
+
+			<record id="hr_salary_rule_APRM" model="hr.salary.rule">
+            <field name="code">APRM</field>
+            <field name="name">Autres Primes Exonérées </field>
+            <field name="category_id" ref="INDMNT"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.prime_ntax>0 </field>
+            <field name="amount_python_compute">result = contract.prime_ntax</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="67"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+
+
+
+		<record id="hr_salary_rule_frlog" model="hr.salary.rule">
+            <field name="code">FRLOG</field>
+            <field name="name">Frais de logement</field>
+            <field name="category_id" ref="PRNATURE"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.frais_loge>0 </field>
+            <field name="amount_python_compute">result = contract.frais_loge</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="70"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_salary_rule_frelec" model="hr.salary.rule">
+            <field name="code">FRELEC</field>
+            <field name="name">Frais eau et électricité</field>
+            <field name="category_id" ref="PRNATURE"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.frais_conso1>0 </field>
+            <field name="amount_python_compute">result = contract.frais_conso1</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="71"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+		
+		<record id="hr_salary_rule_frtel" model="hr.salary.rule">
+            <field name="code">FRTEL</field>
+            <field name="name">Frais Téléphone et Internet</field>
+            <field name="category_id" ref="PRNATURE"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.frais_conso2>0 </field>
+            <field name="amount_python_compute">result = contract.frais_conso2</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="72"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_salary_rule_frdom" model="hr.salary.rule">
+            <field name="code">FRDOM</field>
+            <field name="name">Frais de domesticité</field>
+            <field name="category_id" ref="PRNATURE"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.frais_conso3>0 </field>
+            <field name="amount_python_compute">result = contract.frais_conso3</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="73"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>		
+		
+		<record id="hr_salary_rule_frimp" model="hr.salary.rule">
+            <field name="code">FRIMP</field>
+            <field name="name">Impôts personnels</field>
+            <field name="category_id" ref="PRNATURE"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.frais_conso4>0 </field>
+            <field name="amount_python_compute">result = contract.frais_conso4</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="74"/>
+	     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>	
+        </record>		
+		
+		<record id="hr_salary_rule_frcarb" model="hr.salary.rule">
+            <field name="code">FRCARB</field>
+            <field name="name">Véhicule et carburant</field>
+            <field name="category_id" ref="PRNATURE"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.frais_conso5>0 </field>
+            <field name="amount_python_compute">result = contract.frais_conso5</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="75"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+		
+		<record id="hr_salary_rule_nature" model="hr.salary.rule">
+            <field name="code">FNATURE</field>
+            <field name="name">Autres frais en nature</field>
+            <field name="category_id" ref="PRNATURE"/>
+			<field name="condition_select">python</field>
+			<field name="amount_select">code</field>
+			<field name="condition_python">result = contract.prime_nature>0 </field>
+            <field name="amount_python_compute">result = contract.prime_nature</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="76"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>	
+
+
+		
+		
+<!-- primes taxables -->
+			<record id="hr_payroll_seng_PREND" model="hr.salary.rule">
+            <field name="code">PREND</field>
+            <field name="name">Prime de Rendement</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_rend>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.prime_rend</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="80"/>
+          
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>		
+		
+			<record id="hr_payroll_seng_PNUIT" model="hr.salary.rule">
+            <field name="code">PNUIT</field>
+            <field name="name">Prime de Nuit</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_nuit>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.prime_nuit</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="81"/>
+            
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>		
+		
+
+			<record id="hr_payroll_seng_COMV" model="hr.salary.rule">
+            <field name="code">COMV</field>
+            <field name="name">Commission sur ventes</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.com>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.com</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="82"/>
+            <field name="note">Commission sur ventes taxable </field>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+			<record id="hr_payroll_seng_prpan" model="hr.salary.rule">
+            <field name="code">PRPAN</field>
+            <field name="name">Prime de panier</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_panier>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = min(contract.prime_panier,((contract.wage/173.33)*3*26))</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="83"/>
+            <field name="note">Prime de panier </field>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+			<record id="hr_payroll_seng_prvest" model="hr.salary.rule">
+            <field name="code">PRVEST</field>
+            <field name="name">Prime Vestimentaire</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_vestm>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.prime_vestm</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="84"/>
+            <field name="note">Prime Vestimentaire </field>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+		
+			<record id="hr_payroll_seng_prdepl" model="hr.salary.rule">
+            <field name="code">PRDEPL</field>
+            <field name="name">Prime de déplacement</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_depl>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.prime_depl</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="85"/>
+            <field name="note">Prime de déplacement</field>
+			<field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+            </record>		
+
+			<record id="hr_payroll_seng_saliss" model="hr.salary.rule">
+            <field name="code">PSALISS</field>
+            <field name="name">Prime de Salissure</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_salis>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.prime_salis</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="86"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+            </record>
+			
+			<record id="hr_payroll_seng_indloge" model="hr.salary.rule">
+            <field name="code">INDLOG</field>
+            <field name="name">Indemnité de logement(espèce)</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_loge>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.prime_loge</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="87"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+            </record>	
+		
+			<record id="hr_payroll_seng_indtrsp" model="hr.salary.rule">
+            <field name="code">INDTRSP</field>
+            <field name="name">Prime de Transport(taxable)</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_trsp>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.prime_trsp</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="88"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+			<record id="hr_payroll_seng_prmnuis" model="hr.salary.rule">
+            <field name="code">PRMNUIS</field>
+            <field name="name">Prime de nuisance</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_nuise>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.prime_nuise</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="89"/>
+			<field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+            </record>
+
+			<record id="hr_payroll_seng_p13m" model="hr.salary.rule">
+            <field name="code">P13M</field>
+            <field name="name">Prime 13 ième mois</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_ann==True</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.wage</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="90"/>
+            <field name="note">Prime de 13 mois taxable.</field>
+     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>		
+		
+		
+			<record id="hr_payroll_seng_bilan" model="hr.salary.rule">
+            <field name="code">PBILAN</field>
+            <field name="name">Prime du Bilan</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_bilan>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.prime_bilan</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="91"/>
+			  <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+        </record>
+			<record id="hr_payroll_seng_PAMTX" model="hr.salary.rule">
+            <field name="code">PAMTX</field>
+            <field name="name">Autres Primes Taxables</field>
+            <field name="category_id" ref="ALW"/>
+			<field name="condition_select">python</field>
+			<field name="condition_python">result = contract.prime_tax>0</field>
+			<field name="amount_select">code</field>
+            <field name="amount_python_compute">result = contract.prime_tax</field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="sequence" eval="92"/>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>		
+
+	<record id="hr_payroll_seng_rules_ded_sum_indmnt" model="hr.salary.rule">
+        <field name="category_id" ref="TINDMNT"/>
+        <field name="name">Total des indemnités exonérées</field>
+        <field name="code">TINDMNT</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result = categories['INDMNT'] >0</field>
+        <field name="amount_select">code</field>
+       <field name="amount_python_compute">result = categories['INDMNT'] + categories['ILIC']</field>
+	   <field name="appears_on_payslip" eval="False"/>
+	    <field name="sequence" eval="92"/>
+          <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>	
+
+
+	
+		<record id="hr_payroll_seng_rules_sum_indmt" model="hr.salary.rule">
+        <field name="category_id" ref="TPRIMENE"/>
+        <field name="name">Total primes taxables </field>
+        <field name="code">TPRIMENE</field>
+        <field name="sequence">93</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result = categories['ALW'] >0</field>
+        <field name="amount_select">code</field>
+       <field name="amount_python_compute">result = categories['ALW']</field>
+	   <field name="appears_on_payslip" eval="False"/>
+          <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>	
+
+
+
+
+
+    <!-- <function model="hr.salary.rule" name="write"> -->
+        <!-- <value model="hr.salary.rule" search="[ -->
+            <!-- ('struct_id', '=', ref('hr_payroll_seng.hr_payroll_salary_structure_senegal')), -->
+            <!-- ('code', '=', 'GROSS')]"/> -->
+        <!-- <value eval="{ -->
+            <!-- 'name': 'Brut soumis à la CSS et IPRES', -->
+            <!-- 'code': 'BRU', -->
+            <!-- 'sequence': 95, -->
+            <!-- 'category_id': ref('GROSS'), -->
+            <!-- 'amount_python_compute': &quot;result =  categories['BASIC']+ categories['PRNATURE'] + categories['AlSTG'] + categories['HS'] + categories['ALW']&quot;}"/> -->
+    <!-- </function> -->
+
+
+
+
+
+
+
+
+    <record id="hr_payroll_seng_hr_rule_brut" model="hr.salary.rule">
+        <field name="name">Brut soumis aux cotisations</field>
+        <field name="code">BRUT</field>
+        <field name="sequence">95</field>
+        <field name="category_id" ref="BRUT"/>	
+        <field name="amount_python_compute">result = categories['BASIC']+categories['TPRIMENE']+categories['AlSTG'] +categories['PRNATURE']+categories['CNG'] + categories['HS']</field>
+		<field name="amount_select">code</field>
+		<field name="appears_on_payslip" eval="True"/>
+         <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+
+
+<!-- *******inps***** -->
+
+
+      	<record id="hr_payroll_seng_rules_ipress" model="hr.salary.rule">
+        <field name="category_id" ref="SALC"/>
+        <field name="name">Cotisation IPRES salariale RG</field>
+        <field name="code">IPRESS</field>
+        <field name="sequence">100</field>		
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = contract.type_ctr !='Stage'</field>		
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = contract.employee_id.company_id.t_ipres_s/100 * min(BRUT,contract.employee_id.company_id.plafond2)</field>
+		<field name="appears_on_payslip" eval="True"/>
+       <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+	
+      	<record id="hr_payroll_seng_rules_ipressc" model="hr.salary.rule">
+        <field name="category_id" ref="SALC"/>
+        <field name="name">Cotisation IPRES salariale complémentaire</field>
+        <field name="code">IPRESSC</field>
+        <field name="sequence">101</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result =  BRUT >432000 and  contract.type_ctr !='Stage'</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = (contract.employee_id.company_id.t_ipres_sc*min(BRUT,contract.employee_id.company_id.plafond3))/100</field>
+		                                  
+        <field name="appears_on_payslip" eval="True"/>
+          <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record> 
+	
+
+
+	
+      	<record id="hr_payroll_seng_rules_AMO_employe" model="hr.salary.rule">
+        <field name="category_id" ref="SALC"/>
+        <field name="name">Cotisation AMO salariale</field>
+        <field name="code">AMOS(IPM)</field>
+        <field name="sequence">103</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result =  contract.employee_id.company_id.t_amos > 0 and contract.employee_id.company_id.actv_amo == True  and  contract.type_ctr !='Stage'</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = (contract.employee_id.company_id.t_amos*min(BRUT,contract.employee_id.company_id.plafond4))/100</field>
+		                                  
+        <field name="appears_on_payslip" eval="True"/>
+           <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record> 
+
+
+	 <record id="hr_payroll_seng_rules_ipresp" model="hr.salary.rule">
+        <field name="category_id" ref="INPSPAT"/>
+        <field name="name">Cotisation IPRES patronale RG</field>
+        <field name="code">IPRESP</field>
+        <field name="sequence">120</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = contract.type_ctr !='Stage'</field>	
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = (contract.employee_id.company_id.t_ipres_p*min(BRUT,contract.employee_id.company_id.plafond2))/100</field>
+
+		<field name="appears_on_payslip" eval="True"/>
+         <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+      	<record id="hr_payroll_seng_rules_iprespc" model="hr.salary.rule">
+        <field name="category_id" ref="INPSPAT"/>
+        <field name="name">Cotisation IPRES patronale complémentaire</field>
+        <field name="code">IPRESPC</field>
+        <field name="sequence">121</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result =  BRUT >432000 and  contract.type_ctr !='Stage'</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = (contract.employee_id.company_id.t_ipres_pc*min(BRUT,contract.employee_id.company_id.plafond3))/100</field>
+        <field name="appears_on_payslip" eval="True"/>
+        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+	
+
+	 <record id="hr_payroll_seng_rules_CSSAT" model="hr.salary.rule">
+        <field name="category_id" ref="INPSPAT"/>
+        <field name="name">Cotisation CSS patronale AT</field>
+        <field name="code">CSSAT</field>
+        <field name="sequence">122</field>
+        <field name="condition_select">none</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = (contract.employee_id.company_id.accid_trv*min(BRUT,contract.employee_id.company_id.plafond1))/100</field>
+		<field name="appears_on_payslip" eval="True"/>
+         <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+	
+	 <record id="hr_payroll_seng_rules_CSSPF" model="hr.salary.rule">
+        <field name="category_id" ref="INPSPAT"/>
+        <field name="name">Cotisation CSS PF patronale </field>
+        <field name="code">CSSPF</field>
+        <field name="sequence">123</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result =   contract.type_ctr !='Stage'</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = (contract.employee_id.company_id.t_pfam*min(BRUT,contract.employee_id.company_id.plafond1))/100</field>
+    
+		<field name="appears_on_payslip" eval="True"/>
+         <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+	
+	
+
+      	<record id="hr_payroll_seng_rules_AMO_employer" model="hr.salary.rule">
+        <field name="category_id" ref="INPSPAT"/>
+        <field name="name">Cotisation AMO patronale</field>
+        <field name="code">AMOP</field>
+        <field name="sequence">123</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result =  contract.type_ctr !='Stage'  and   contract.employee_id.company_id.t_amop > 0 and contract.employee_id.company_id.actv_amo == True </field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = (contract.employee_id.company_id.t_amop*min(BRUT,contract.employee_id.company_id.plafond4))/100</field>
+		                                  
+        <field name="appears_on_payslip" eval="True"/>
+        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+		
+		
+		
+<!-- fin primes -->	
+
+    <record id="hr_rule_total_charges_IPRESC" model="hr.salary.rule">
+        <field name="name">Total IPRES RCC</field>
+        <field name="sequence">198</field>
+        <field name="code">TIPRESC</field>
+        <field name="category_id" ref="other_totals"/>
+        <field name="appears_on_payslip" eval="False"/>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result =   BRUT >432000 and  contract.type_ctr !='Stage'</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = IPRESPC+IPRESSC</field>
+        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+    <record id="hr_rule_total_charges_IPRESRG" model="hr.salary.rule">
+        <field name="name">Total IPRES RG</field>
+        <field name="sequence">199</field>
+        <field name="code">TIPRERG</field>
+        <field name="category_id" ref="other_totals"/>
+        <field name="appears_on_payslip" eval="False"/>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result = contract.type_ctr !='Stage'</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = IPRESP+IPRESS</field>
+        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+	
+    <record id="hr_rule_total_charges_salariales" model="hr.salary.rule">
+        <field name="name">Total des charges salariales</field>
+        <field name="sequence">200</field>
+        <field name="code">SALC</field>
+        <field name="category_id" ref="other_totals"/>
+        <field name="appears_on_payslip" eval="False"/>
+        <field name="condition_select">none</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = categories['SALC']</field>
+        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+	
+    <record id="hr_rule_total_charges_inps" model="hr.salary.rule">
+        <field name="name">Total CSS salarial et patronal</field>
+        <field name="sequence">201</field>
+        <field name="code">TCSS</field>
+        <field name="category_id" ref="other_totals"/>
+        <field name="appears_on_payslip" eval="False"/>
+        <field name="condition_select">none</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = categories['SALC']+categories['INPSPAT']</field>
+         <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+    <record id="hr_rule_cumul_imposable" model="hr.salary.rule">
+        <field name="name">Brut mensuel soumis à l'IR</field>
+        <field name="sequence">300</field>
+        <field name="category_id" ref="C_IMP"/>
+        <field name="code">CIMP</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result =  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage'</field>
+        <field name="amount_select">code</field>
+        <field name="appears_on_payslip" eval="False"/>
+        <field name="amount_python_compute">result =(BRUT-categories['SALC']-categories['AlSTG'] - categories['ILIC'])</field>	     
+		<field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+  	<record id="hr_payroll_seng_abat" model="hr.salary.rule">
+		<field name="category_id" ref="ABATIR"/>
+		<field name="name">Abbatement 30%</field>
+        <field name="code">ABATIR</field>
+    	<field name="sequence">401</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result =  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage'</field>		
+        <field name="amount_select">code</field>
+		<field name="amount_python_compute">result = max((categories['C_IMP']*12*0.3),900000)</field>
+		<field name="appears_on_payslip" eval="False"/>
+	     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+	<record id="hr_rule_cumul_impo_annuel" model="hr.salary.rule">
+        <field name="name">Revenu Imposable annuel après abattement</field>
+        <field name="sequence">402</field>
+        <field name="category_id" ref="C_IMPDED"/> 
+        <field name="code">C_IMPDED</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = (categories['C_IMP']*12 - categories['ABATIR'])> 0 and  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage'</field>
+        <field name="amount_select">code</field>
+        <field name="appears_on_payslip" eval="False"/>
+        <field name="amount_python_compute">result =categories['C_IMP']*12 - categories['ABATIR'] </field>
+		     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record> 
+
+	
+	<record id="hr_payroll_seng_rules_TRANCHE0" model="hr.salary.rule">
+        <field name="category_id" ref="TRANCHEIMPO"/>
+        <field name="name">TRANCHE0</field>
+        <field name="code">T0</field>
+        <field name="sequence">500</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = categories['C_IMPDED']  > 0  and  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage'</field>
+		<field name="amount_select">percentage</field>
+        <field name="amount_percentage">0</field>
+        <field name="amount_percentage_base">categories['C_IMPDED']</field>
+		<field name="appears_on_payslip" eval="False"/>
+
+      <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+	
+	<record id="hr_payroll_seng_rules_TRANCHE1" model="hr.salary.rule">
+        <field name="category_id" ref="TRANCHEIMPO"/>
+        <field name="name">TRANCHE1</field>
+        <field name="code">T1</field>
+        <field name="sequence">501</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = (categories['C_IMPDED'] - contract.employee_id.company_id.rniau1) > 0 and  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage' </field>
+        <field name="amount_select">percentage</field>
+        <field name="amount_percentage">20</field>
+        <field name="amount_percentage_base">min(categories['C_IMPDED'], contract.employee_id.company_id.rniau2) - contract.employee_id.company_id.rnidu2</field>
+        <field name="appears_on_payslip" eval="False"/>
+
+	     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+	
+	<record id="hr_payroll_seng_rules_TRANCHE2" model="hr.salary.rule">
+        <field name="category_id" ref="TRANCHEIMPO"/>
+        <field name="name">TRANCHE2</field>
+        <field name="code">T2</field>
+        <field name="sequence">502</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = (categories['C_IMPDED'] - contract.employee_id.company_id.rniau2) > 0  and  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage' </field>
+        <field name="amount_select">percentage</field>
+        <field name="amount_percentage">30</field>
+        <field name="amount_percentage_base">min(categories['C_IMPDED'], contract.employee_id.company_id.rniau3) - contract.employee_id.company_id.rnidu3</field>
+        <field name="appears_on_payslip" eval="False"/>
+
+        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+   
+   
+	<record id="hr_payroll_seng_rules_TRANCHE3" model="hr.salary.rule">
+        <field name="category_id" ref="TRANCHEIMPO"/>
+        <field name="name">TRANCHE3</field>
+        <field name="code">T3</field>
+        <field name="sequence">503</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = (categories['C_IMPDED'] - contract.employee_id.company_id.rniau3) > 0  and  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage'</field>
+        <field name="amount_select">percentage</field>
+        <field name="amount_percentage">35</field>
+        <field name="amount_percentage_base">min(categories['C_IMPDED'], contract.employee_id.company_id.rniau4) - contract.employee_id.company_id.rnidu4</field>
+        <field name="appears_on_payslip" eval="False"/>
+
+	     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+	
+	
+	
+	<record id="hr_payroll_seng_rules_TRANCHE4" model="hr.salary.rule">
+        <field name="category_id" ref="TRANCHEIMPO"/>
+        <field name="name">TRANCHE4</field>
+        <field name="code">T4</field>
+        <field name="sequence">504</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = (categories['C_IMPDED'] - contract.employee_id.company_id.rniau4) > 0  and  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage'</field>
+        <field name="amount_select">percentage</field>
+        <field name="amount_percentage">37</field>
+        <field name="amount_percentage_base">min(categories['C_IMPDED'], contract.employee_id.company_id.rniau5) - contract.employee_id.company_id.rnidu5</field>
+        <field name="appears_on_payslip" eval="False"/>
+
+      <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+		<record id="hr_payroll_seng_rules_TRANCHE5" model="hr.salary.rule">
+        <field name="category_id" ref="TRANCHEIMPO"/>
+        <field name="name">TRANCHE5</field>
+        <field name="code">T5</field>
+        <field name="sequence">505</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = (categories['C_IMPDED'] - contract.employee_id.company_id.rniau5) > 0  and  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage'</field>
+        <field name="amount_select">percentage</field>
+        <field name="amount_percentage">40</field>
+        <field name="amount_percentage_base">min(categories['C_IMPDED'], contract.employee_id.company_id.rniau6) - contract.employee_id.company_id.rnidu6</field>
+        <field name="appears_on_payslip" eval="False"/>
+	     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>	
+
+		<record id="hr_payroll_seng_rules_TRANCHE6" model="hr.salary.rule">
+        <field name="category_id" ref="TRANCHEIMPO"/>
+        <field name="name">TRANCHE6</field>
+        <field name="code">T6</field>
+        <field name="sequence">506</field>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = (categories['C_IMPDED'] - contract.employee_id.company_id.rniau6) > 0 and  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage'</field>
+        <field name="amount_select">percentage</field>
+        <field name="amount_percentage">43</field>
+        <field name="amount_percentage_base">min(categories['C_IMPDED'], contract.employee_id.company_id.rniau7) - contract.employee_id.company_id.rnidu7</field>
+        <field name="appears_on_payslip" eval="False"/>
+
+	     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+<!-- **************DEDUCTIONS************************** -->
+	    <record id="hr_rule_IRPP" model="hr.salary.rule">
+        <field name="name">Impôt liquidé avant réduction</field>
+        <field name="sequence">600</field>
+        <field name="category_id" ref="IRAR"/>
+        <field name="code">ILAR</field>
+        <field name="condition_select">python</field>
+        <field name="condition_python">result =categories['C_IMPDED'] != 0.0 and  employee.categ_sal  in ('NI','EI','AAC','XI')and  contract.type_ctr !='Stage'</field>			
+		<field name="amount_select">code</field>
+		<field name="amount_python_compute">result = categories['TRANCHEIMPO']</field>
+		
+        <field name="appears_on_payslip" eval="False"/>
+	        <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+	   
+	    <record id="hr_rule_part" model="hr.salary.rule">
+        <field name="name">Employee parts</field>
+        <field name="sequence">700</field>
+		     <field name="category_id" ref="other_totals"/> 
+        <field name="code">EPART</field>		
+		<field name="amount_select">code</field>
+		<field name="amount_python_compute">result = employee.parts  </field>
+        <field name="appears_on_payslip" eval="False"/>
+	       <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+	   
+	<record id="hr_payroll_seng_rules_reductions" model="hr.salary.rule">
+            <field name="code">RED</field>
+            <field name="name">Réductions d’impôt selon le nombre de parts</field>
+			<field name="sequence">800</field>
+            <field name="category_id" ref="REDUCT"/>
+            <field name="condition_select">python</field>
+            <field name="condition_python">result = categories['IRAR'] &gt;= 0 and  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage'</field>	
+			<field name="appears_on_payslip" eval="False"/>
+            <field name="amount_select">code</field>
+             <field name="amount_python_compute">result = (
+ max(min(3180000,(categories['IRAR']*0.45)) ,800000)  if (employee.parts==5)	
+else max(min(2755000,(categories['IRAR']*0.4)) ,700000)  if (employee.parts==4.5)
+else max(min(2490000,(categories['IRAR']*0.35)) ,600000) if (employee.parts==4)			
+else max(min(2030000,(categories['IRAR']*0.3)), 500000) if (employee.parts==3.5)
+else max(min(1650000,(categories['IRAR']*0.25)), 400000)  if (employee.parts==3)			
+else max(min(1100000,(categories['IRAR']*0.2)) ,300000)  if (employee.parts==2.5)
+else max(min(650000,(categories['IRAR']*0.15)), 200000)  if (employee.parts==2)
+else max(min(300000,(categories['IRAR']*0.1)), 100000) if (employee.parts==1.5)
+else -0)
+</field>
+	     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+	<record id="hr_payroll_seng_rules_trimf" model="hr.salary.rule">
+            <field name="code">TRIMF</field>
+            <field name="name">Taxe Représentative de l'Impôt du Minimum Fiscal(TRIMF)</field>
+			<field name="sequence">810</field>
+            <field name="category_id" ref="TRIMF"/>
+            <field name="condition_select">python</field>
+		    <field name="condition_python">result = employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage' </field>
+			<field name="appears_on_payslip" eval="True"/>
+            <field name="amount_select">code</field>
+            <field name="amount_python_compute">
+val= BRUT*12		
+result = (3000 if val &gt;= 12000000
+else 1500 if ((val &gt;= 7000000) and (val &lt;= 11999999))
+else 1000 if ((val &gt;= 2000000) and (val &lt;= 6999999))
+else 400 if ((val &gt;= 1000000) and (val &lt;= 1999999))
+else 300 if ((val &gt;= 600000) and (val &lt;= 999999))
+else 75 if ((val &gt;= 0) and (val &lt;= 599999))
+else -0)
+ </field>
+
+	     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+<!-- AUTRES TAXES 	 -->
+
+
+	<record id="hr_payroll_seng_rules_contri_cfce" model="hr.salary.rule">
+        <field name="category_id" ref="COMP"/>
+        <field name="name">Contribution forfaitaire à la Charge de l’Employeur (CFCE)</field>
+        <field name="code">CFCE</field>
+        <field name="sequence">820</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result = contract.employee_id.company_id.t_tcf > 0 and  contract.type_ctr !='Stage'</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result=(BRUT*contract.employee_id.company_id.t_tcf)/100</field>
+        <field name="appears_on_payslip" eval="True"/>
+            <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>	
+
+
+  	<record id="hr_payroll_seng_irr" model="hr.salary.rule">
+		<field name="category_id" ref="IR"/>
+		<field name="name">Impôt sur les Revenus annuel(IR) </field>
+        <field name="code">IRA</field>
+    	<field name="sequence">830</field>
+        <field name="condition_select">python</field>
+        <field name="condition_python">result =categories['IRAR'] != 0.0 and  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage'</field>			
+        <field name="amount_select">code</field>
+		<field name="amount_python_compute">result = max((categories['IRAR']-categories['REDUCT']),0)</field>
+		<field name="appears_on_payslip" eval="False"/>
+	     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+	
+  	<record id="hr_payroll_seng_irrm" model="hr.salary.rule">
+		<field name="category_id" ref="IRPP"/>
+		<field name="name">Impôt sur les Revenus  mensuel (IR) </field>
+        <field name="code">IR</field>
+    	<field name="sequence">840</field>
+        <field name="condition_select">python</field>
+        <field name="condition_python">result =categories['IR'] != 0.0 and  employee.categ_sal  in ('NI','EI','AAC','XI') and  contract.type_ctr !='Stage'</field>			
+        <field name="amount_select">code</field>
+		<field name="amount_python_compute">result = categories['IR']/12</field>
+		<field name="appears_on_payslip" eval="True"/>
+     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+	 
+ 
+    <record id="hr_payroll_avance" model="hr.salary.rule">
+        <field name="name">Avance sur Salaire</field>
+        <field name="sequence">900</field>
+        <field name="category_id" ref="RETN"/>
+        <field name="code">AVSAL</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result =  employee.avance > 0 </field>
+		 <field name="amount_select">code</field>
+        <field name="amount_python_compute">result =  employee.avance </field>
+		<field name="appears_on_payslip" eval="True"/>
+			
+             <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+    <record id="hr_payroll_pret" model="hr.salary.rule">
+        <field name="name">Remboursement de prêt</field>
+        <field name="sequence">901</field>
+        <field name="category_id" ref="RETN"/>
+        <field name="code">RPRET</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result =  employee.montatdeduire > 0 </field>
+		 <field name="amount_select">code</field>
+        <field name="amount_python_compute">result =  employee.montatdeduire </field>
+		<field name="appears_on_payslip" eval="True"/>
+   			
+             <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+    <record id="hr_payroll_retenues" model="hr.salary.rule">
+        <field name="name">Autres retenues</field>
+        <field name="sequence">902</field>
+        <field name="category_id" ref="RETN"/>
+        <field name="code">RETN</field>
+        <field name="condition_select">python</field>
+		<field name="condition_python">result =  employee.retenues > 0 </field>
+		 <field name="amount_select">code</field>
+        <field name="amount_python_compute">result =  employee.retenues </field>
+		<field name="appears_on_payslip" eval="True"/>
+     			
+             <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+    <record id="hr_payroll_tot_retenues" model="hr.salary.rule">
+        <field name="name">Total Retenues</field>
+        <field name="sequence">905</field>
+        <field name="category_id" ref="TRET"/>
+        <field name="code">TRET</field>
+        <field name="condition_select">none</field>
+        <field name="amount_select">code</field>
+        <field name="appears_on_payslip" eval="False"/>
+        <field name="amount_python_compute">result = categories['RETN']+ categories['IRPP'] + categories['SALC']</field>
+	 		
+       <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>	   
+
+		<record id="hr_rule_total_charges_surpl_prec" model="hr.salary.rule">
+        <field name="name">Arrondi du mois précédent</field>
+        <field name="sequence">990</field>
+        <field name="code">SURPLP</field>
+        <field name="category_id" ref="other_totals"/> 
+        <field name="appears_on_payslip" eval="True"/>
+        <field name="condition_select">none</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">
+
+
+surplus = payslip.search([
+    ('employee_id', '=', payslip.employee_id.id),
+    ('state', 'in', ['verify', 'done']),
+    ('date_from', '&gt;=', payslip.date_from + relativedelta(day=1, months=-1)),
+    ('date_to', '&lt;=', payslip.date_from + relativedelta(day=31, months=-1)),
+])._get_line_values(['NETRM'], compute_sum=True)['NETRM']['sum']['total']
+
+result = surplus
+
+
+ </field>
+		<field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+    </record>
+
+
+
+
+
+  <record id="hr_payroll_seng_hr_rule_net" model="hr.salary.rule">
+        <field name="name">Salaire Net</field>
+        <field name="sequence">1000</field>
+		<field name="code">NET</field>
+        <field name="category_id" ref="hr_payroll_seng.NET"/>
+		<field name="condition_select">python</field>
+		<field name="condition_python">result = categories['BRUT'] !=0</field>
+        <field name="amount_python_compute">result =  -SURPLP + categories['BRUT']- categories['TRIMF'] +categories['INDMNT'] - categories['TRET']</field>
+		 <field name="amount_select">code</field>   
+			     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+		
+
+ 	 <record id="hr_rule_total_charges_report" model="hr.salary.rule">
+        <field name="name">Arrondi du mois</field>
+        <field name="sequence">1101</field>
+        <field name="code">SURPL</field>
+        <field name="category_id" ref="other_totals"/> 
+        <field name="appears_on_payslip" eval="True"/>
+        <field name="condition_select">none</field>
+        <field name="amount_select">code</field>
+		
+        <field name="amount_python_compute">result = NET % 500</field>
+		<field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+    </record>
+	
+	
+		 <record id="hr_rule_total_charges_NETM" model="hr.salary.rule">
+        <field name="name">Net à payer</field>
+        <field name="sequence">1103</field>
+        <field name="code">NETM</field>
+        <field name="category_id" ref="other_totals"/> 
+        <field name="appears_on_payslip" eval="True"/>
+        <field name="condition_select">none</field>
+        <field name="amount_select">code</field>
+		
+        <field name="amount_python_compute">result = NET - SURPL </field>
+		<field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+    </record>
+
+	 <record id="hr_rule_total_charges_NREP" model="hr.salary.rule">
+        <field name="name">report</field>
+        <field name="sequence">1104</field>
+        <field name="code">NETRM</field>
+        <field name="category_id" ref="other_totals"/> 
+        <field name="appears_on_payslip" eval="False"/>
+        <field name="condition_select">none</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = NETM -NET  </field>
+		<field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>
+    </record>
+
+
+
+
+
+
+    <record id="hr_rule_total_charges_patronales" model="hr.salary.rule">
+        <field name="name">Total Charges Patronales</field>
+        <field name="sequence">1110</field>
+        <field name="code">COMP</field>
+        <field name="category_id" ref="other_totals"/> 
+        <field name="appears_on_payslip" eval="False"/>
+        <field name="condition_select">none</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = categories['COMP']+categories['INPSPAT']</field>
+     <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+    <record id="hr_rule_total" model="hr.salary.rule">
+        <field name="name">Cout total pour l'entreprise</field>
+        <field name="sequence">1120</field>
+        <field name="code">TOTAL</field>
+        <field name="category_id" ref="TOTAL"/>
+        <field name="appears_on_payslip" eval="False"/>
+        <field name="condition_select">none</field>
+        <field name="amount_select">code</field>
+        <field name="amount_python_compute">result = BRUT + categories['COMP']+categories['INPSPAT']</field>
+         <field name="struct_id" ref="hr_payroll_salary_structure_senegal"/>				
+        </record>
+
+
+   
+</odoo>

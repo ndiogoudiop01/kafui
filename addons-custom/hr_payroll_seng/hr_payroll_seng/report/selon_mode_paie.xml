@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+
+	<record id="mode_portrait" model="report.paperformat">
+	 <field name="name">format A4 paysage</field>
+	<field name="default" eval="True"/>
+	<field name="format">A4</field>
+	<field name="orientation">Portrait</field>
+    <field name="margin_top">0</field>
+    <field name="margin_bottom">1</field>
+    <field name="margin_left">2</field>
+    <field name="margin_right">1</field>
+    <field name="header_spacing">0</field>	
+	<field name="header_line" eval="False"/>
+
+		</record>
+
+	
+
+		<record id="action_mode_paie_selon" model="ir.actions.report">
+            <field name="name">Tableau selon mode de paiement</field>
+            <field name="model">hr.paie</field>
+            <field name="report_type">qweb-html</field>
+            <field name="report_name">hr_payroll_seng.mode_paie</field>
+            <field name="report_file">hr_payroll_seng.mode_paie</field>
+			 <field name="paperformat_id" ref="hr_payroll_seng.paperformat_bulletin" />
+			 <field name="print_report_name">'Salaires selon mode de paiement  - %s  - %s'% (object.month or '-', object.date_from.year )</field>
+            <field name="binding_model_id" ref="model_hr_paie"/>
+            <field name="binding_type">report</field>  
+			  
+        </record> 		
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<template id="mode_paie">
+	    	    <t t-call="web.html_container">
+				<t t-foreach="docs" t-as="o">
+	    	     <t t-call="web.basic_layout">
+				   
+ 
+
+ 
+ 
+ <div class="page"> 		
+	
+ <style>
+
+.main-data {
+width: 90%;
+position: absolute;
+top: 320px;
+font-size: 80%;
+}
+
+.titre {
+width: 100%;
+position: absolute;
+font-size: 90%;
+ font-family: Arial, Helvetica, sans-serif;
+
+top: 70px;
+left: 40px;
+}
+
+
+
+</style>
+
+ <div class="titre">
+    <p><strong>Société:</strong><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><span t-esc="o.company_id.name"></span></p>
+
+
+
+  <p><strong>Période</strong><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]>  <strong>Du </strong> <span t-esc="o.date_from" t-options='{"widget": "date"}'></span><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]> <strong>Au </strong><span t-esc="o.date_to" t-options='{"widget": "date"}'></span></p>
+
+
+
+
+
+
+ </div>
+ 
+ <br/> <br/><br/>
+ <div class="main-data">
+ <br/>
+ 
+
+<table class="table table-bordered" >
+
+	
+<tbody t-foreach="o.paie_lines" t-as="line">
+	<t t-if="line.modepaiement =='Espece'">
+	<tr height="20" style="background-color:#EBEBEB !important" >
+	<th colspan="4">Employés payés en espèce</th>
+	<th colspan="2">Mois</th>
+	<th colspan="2">Net</th>
+	<th colspan="2">Mode de paiement</th>
+	</tr>
+	<tr >
+	
+	<td colspan="4"><span t-esc="line.employee_id.name"></span></td>
+	<td colspan="2"><span  t-esc="line.paie_id.month"></span></td>
+	<td colspan="2"><span t-esc="'%.0f'% line.net"></span></td>
+	<td colspan="2"><span t-esc=" line.modepaiement"></span></td>
+	</tr>
+	</t>
+</tbody>
+</table>
+
+<br/><br/>
+
+
+	
+<table class="table table-bordered" >
+	
+<tbody t-foreach="o.paie_lines" t-as="line">
+	<t t-if="line.modepaiement in ['Virement','Cheque']">
+	<tr height="20" style="background-color:#EBEBEB !important" >
+	<th colspan="4">Employés payés par virement</th>
+	<th colspan="2">Mois</th>
+	<th colspan="2">Net</th>
+	<th colspan="2">Mode de paiement</th>
+	</tr>
+	<tr >
+	
+	<td colspan="4"><span t-esc="line.employee_id.name"></span></td>
+	<td colspan="2"><span  t-esc="line.paie_id.month"></span></td>
+	<td colspan="2"><span t-esc="'%.0f'% line.net"></span></td>
+	<td colspan="2"><span t-esc=" line.modepaiement"></span></td>
+	</tr>
+	</t>
+</tbody>
+</table>
+
+
+
+
+
+	
+
+
+</div>
+	
+</div>	
+
+
+
+</t>
+</t>
+</t>
+	   
+	</template>
+</odoo>

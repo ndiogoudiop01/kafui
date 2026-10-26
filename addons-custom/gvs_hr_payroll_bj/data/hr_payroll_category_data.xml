@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            Catégories de règles salariales — Bénin
+
+            TECH_BJ  : Lignes techniques (non affichées sur le bulletin)
+            ALW_NI_BJ: Indemnités non imposables BJ (non soumises à l'ITS)
+        -->
+
+        <record id="TECH_BJ" model="hr.salary.rule.category">
+            <field name="name">Technique BJ</field>
+            <field name="code">TECH_BJ</field>
+            <field name="country_id" ref="base.bj"/>
+        </record>
+
+        <record id="ALW_NI_BJ" model="hr.salary.rule.category">
+            <field name="name">Indemnités NI BJ</field>
+            <field name="code">ALW_NI_BJ</field>
+            <field name="country_id" ref="base.bj"/>
+        </record>
+
+    </data>
+</odoo>

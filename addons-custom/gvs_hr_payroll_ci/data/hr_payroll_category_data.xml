@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            Catégorie GROSS_IMP — Brut imposable CI
+
+            Catégorie spécifique à la paie CI : regroupe le salaire brut imposable
+            (Total Soumis) avant retenues. Distincte de GROSS (brut total) car en CI
+            les indemnités non imposables (transport, fonction) ne font PAS partie du
+            brut imposable mais entrent dans le brut total (BRUT = BRUT_IMP + ALW_NI).
+
+            country_id = CI : invisible depuis les sociétés Togo et autres pays.
+        -->
+        <!-- TECH : valeurs intermédiaires/calcul, masquées du bulletin -->
+        <record id="TECH" model="hr.salary.rule.category">
+            <field name="name">Technique CI</field>
+            <field name="code">TECH</field>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+        </record>
+
+        <!-- ALW_NI : indemnités non imposables (hors assiette ITS et CNPS) -->
+        <record id="ALW_NI" model="hr.salary.rule.category">
+            <field name="name">Allocation non imposable CI</field>
+            <field name="code">ALW_NI</field>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+        </record>
+
+        <record id="cat_ci_gross_imp" model="hr.salary.rule.category">
+            <field name="name">Brut imposable CI</field>
+            <field name="code">GROSS_IMP</field>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.ci"/>
+        </record>
+
+    </data>
+</odoo>

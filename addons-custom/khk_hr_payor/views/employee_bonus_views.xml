@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Formulaire contrat Sénégal.
+        • L'onglet "Éléments variables", dateAnciennete, typeContract, motif
+          et le filtre struct_id sont désormais dans gvs_hr_payroll_base.
+        • Ce fichier ajoute uniquement les éléments spécifiques Sénégal :
+            - Onglet "Congés" (après l'onglet "Éléments variables" de base)
+            - Champ convention_id avant le salaire
+            - Remplacement du groupe top_info_right
+    -->
+
+    <record id="hr_contract_sn_form_inherit" model="ir.ui.view">
+        <field name="name">hr.version.sn.form.inherit</field>
+        <field name="model">hr.version</field>
+        <field name="inherit_id" ref="om_hr_payroll.hr_contract_form_inherit"/>
+        <field name="arch" type="xml">
+
+            <!-- Onglet Congés : après l'onglet Éléments variables (ajouté par base) -->
+            <xpath expr="//page[@name='bonus']" position="after">
+                <page string="Congés" name="conges">
+                    <group string="Initialisation" invisible="True">
+                        <group><field name="cumul_jour"/></group>
+                        <group><field name="cumul_conges"/></group>
+                    </group>
+                    <group string="Jours acquis / pris">
+                        <group><field name="nbj_aquis" readonly="True"/></group>
+                        <group>
+                            <label for="nbj_pris" string="Jours pris"/>
+                            <div>
+                                <field name="nbj_pris" class="oe_inline" readonly="True"/> Jours
+                            </div>
+                        </group>
+                    </group>
+                    <group string="Allocation congés">
+                        <group>
+                            <field name="cumul_mensuel" readonly="True"/>
+                            <field name="cumul_provision_fin_contrat" invisible="True"/>
+                            <field name="last_date" invisible="True"/>
+                        </group>
+                        <group><field name="alloc_conges"/></group>
+                    </group>
+                    <group>
+                        <group>
+                            <label for="nb_days"/>
+                            <div><field name="nb_days" class="oe_inline"/> Jours</div>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+
+            <!-- Convention collective avant le salaire -->
+            <field name="wage" position="before">
+                <field name="convention_id"/>
+            </field>
+
+            <!-- Remplace le groupe top_info_right -->
+            <xpath expr="//group[@name='top_info_right']" position="replace">
+                <group name="top_info_right">
+                    <field name="department_id" options="{'no_open': True, 'no_create': True}"/>
+                    <field name="job_id"/>
+                    <field name="struct_id"/>
+                    <field name="hr_responsible_id" required="1"/>
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- Pivot des lignes de bulletin (commun, gardé ici pour compatibilité) -->
+    <record id="view_hr_payslip_line_pivot" model="ir.ui.view">
+        <field name="name">hr.payslip.line.pivot</field>
+        <field name="model">hr.payslip.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Lignes de paie">
+                <field name="total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+</odoo>

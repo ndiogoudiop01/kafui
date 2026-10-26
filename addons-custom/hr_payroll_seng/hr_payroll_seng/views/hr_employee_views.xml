@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+
+	        <record id="hr_employee_tree_employe_view" model="ir.ui.view" >
+            <field name="name">hr.employee.tree.employee.view</field>
+            <field name="model">hr.employee</field>
+            <field name="inherit_id" ref="hr.view_employee_tree"/>
+            <field name="arch" type="xml">
+             
+					<xpath expr="//field[@name='name']" position="after">
+					
+					<field name="mode_pay"/>
+				
+					<field name="hrs_trav_cemois"/>
+					<field name="jrs_trav_cemois"/>	
+					<field name="heure_15"/>
+					<field name="heure_35"/>
+					<field name="heure_40"/>
+					<field name="heure_50"/>
+					<field name="heure_60"/>
+					<field name="heure_100"/>
+					<field name="avance"/>
+				   <field name="conge_maladie_j"/>
+					<field name="conge_circonstance"/>
+					<field name="ferie_j"/>
+					<field name="conge_paye"/>
+					<field name="conge_pris"/>
+					<field name="absence_n_j"/>
+					<field name="absence_n_h"/>	
+					<field name="at_j"/>
+					<field name="sanc_j"/>	
+					<field name="retenues"/>
+					
+                 </xpath>
+            </field>
+        </record>
+
+
+<record id="hr_employee_form_l10n_ma_payroll" model="ir.ui.view">
+            <field name="name">hr.employee.form.l10n.ma_payroll</field>
+            <field name="model">hr.employee</field>
+            <field name="inherit_id" ref="hr.view_employee_form"/>
+            <field name="arch" type="xml">
+
+		    <xpath expr="//field[@name='name']" position="before">
+                         <group>
+                             <field name="last_name"/> 
+							 <field name="first_name"/>
+                             <field name="code2"/> 
+                    </group>
+					</xpath>
+					<xpath expr="//field[@name='name']" position="attributes">
+                    <attribute name="placeholder">Prénom et Nom</attribute>
+                </xpath>
+				 
+				 <xpath expr="//field[@name='job_id']" position="after">
+                 <field name="diplome" string="Type de diplôme"/>
+                 </xpath>
+
+                    <xpath expr="//field[@name='birthday']" position="after">
+                        <field name="age"/>
+					   <field name="titre"/>
+                    </xpath> 
+               
+                  <xpath expr="//field[@name='children']" position="after">
+                        <field name="parts"/>
+                  </xpath> 
+				 <xpath expr="//field[@name='country_id']" position="replace">
+                 <field name="nation" string="Nationalité"/>
+                 </xpath>
+				 <xpath expr="//field[@name='identification_id']" position="replace">
+                 <field name="cin" string="N de Carte Nationale CIN"/>
+                 </xpath> 
+					<xpath expr="//field[@name='work_email']" position="after">
+                    <field name="categ_sal"/> 
+				  
+                    <field name="mode_pay"/> 
+					<field name="d_point"/>
+                          
+                   
+                </xpath>
+		
+				<notebook>
+				<page string="Num.d'affiliation" groups="hr.group_hr_user">
+				
+                        <group colspan="4" col="3"> 
+				   <field name="matricule_cnss"/>
+				   <field name="id_fiscal"/>
+				   <field name="indice"/>
+				   <field name="niveau"/>	
+	
+				    </group> 
+							  				
+                            </page>
+					
+
+							</notebook>	
+<notebook>
+				<page string="Avance/retenues du mois">
+                    <group colspan="4" col="3">
+					<field name="avance" string="Avance sur salaire"  />
+					<field name="retenues" string="Autres retenues"  />
+					</group>
+			  				
+                </page>
+				
+				<page string="Gestion des présences ">
+				
+				<div>
+				<group colspan="4" col="3">
+
+                 <p style="font: 140% sans-serif; font-family:Calibri;">Mode(Horaire ou Mensuel):<![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><strong> <field name="mode_pay"/></strong><![CDATA[&nbsp;]]></p>
+					<p style="font: 140% sans-serif; font-family:Calibri;">Choisir les pointages à considérer: <![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><strong><field name="d_point"/></strong><![CDATA[&nbsp;]]></p>
+								 
+				<br/>				 
+								 
+				<p style="font: 95% sans-serif; font-family:Calibri;">** Vous pouvez importer les heures travaillés avec un fichier  xls ou les saisir manuellement.</p>	
+				</group>
+				
+				</div>
+				
+				
+               
+				
+				<table class="table table-bordered"  style="width:80%;" invisible= "d_point != 'manuel'">
+				<TR><TH bgcolor="#e3e9ef" colspan="8">Saisir la présence heures ou jours </TH></TR>
+	            <TR><TH colspan="4" >Type</TH><TH colspan="4">Quantité</TH></TR>				
+	            <TR><TH colspan="4" >Heures travaillées durant le mois</TH><TD colspan="4"><field name="hrs_trav_cemois"/></TD></TR>
+	            <TR><TH colspan="4" >Jours travaillés</TH><TD colspan="4"><field name="jrs_trav_cemois"/></TD></TR>
+	            </table>
+
+				<separator/>
+				<table class="table table-bordered"  style="width:80%;" invisible= "d_point != 'manuel'">
+				<TR><TH bgcolor="#e3e9ef" colspan="12">Saisir la présence: cas mensuel </TH></TR>
+	            <TR><TH colspan="4" >Type</TH><TH colspan="4">Quantité</TH><TH colspan="4">Horaire Légal</TH></TR>				
+	            <TR><TH colspan="4" >Heures travaillées durant le mois</TH><TD colspan="4"><field name="hrs_trav_cemois_m"/></TD><TD colspan="4"><field name="heures_t"/></TD></TR>
+	            <TR><TH colspan="4" >Jours travaillés</TH><TD colspan="4"><field name="jrs_trav_cemois_m"/></TD><TD colspan="4"><field name="jours_t"/></TD></TR>
+	            </table>				
+             
+				
+			
+					       			
+				
+					
+				<table class="table table-bordered"  style="width:65%;" invisible= "d_point in ('manuel','systeme')">
+				<TR><TH colspan="3" bgcolor="#e4ec94">Pointages</TH><TH bgcolor="#e4ec94" colspan="3">Mois encours</TH><TH bgcolor="#e4ec94" colspan="3">Mois dernier</TH></TR>	
+	            <TR><TH colspan="3" >Heures travaillées </TH><TD colspan="3"><field name="hours_this_month"/></TD><TD colspan="3"><field name="hours_last_m"/></TD></TR>
+	            <TR><TH colspan="3" >Jours travaillés</TH><TD colspan="3"><field name="days_this_month"/></TD><TD colspan="3"><field name="days_last_month"/></TD></TR>
+
+				</table>	
+
+		<p style="font: 140% sans-serif; font-family:Calibri;" invisible= "d_point in ('manuel','systeme')">Heures de présence aujourd'hui: <field name="hours_today"/><![CDATA[&nbsp;]]></p>	
+				  		
+		<div style="border-radius:8px;background-color:#32fd145c;padding:4px" invisible= "d_point in ('manuel','systeme')">
+
+       <p style="font: 140% sans-serif; font-family:Calibri;">Voir les pointages: <field name="show"/><![CDATA[&nbsp;]]></p>
+ 
+       <p style="border-radius:16px;background-color:#32fd145c;padding:4px">Pointages</p>
+       <p><field name="attendance_ids" widget="many2many"/></p>
+      
+	 </div>		
+					
+
+			</page>					
+
+		<page string="Saisie des heures sup." name="hsup">
+		<table class="table table-bordered"  style="width:65%;">
+	<TR>
+		<TH bgcolor="#e3e9ef" colspan="8">Saisir les heures sup. du mois </TH></TR>
+		
+	<TR><TH colspan="4">Type</TH><TH colspan="4">Quantité</TH></TR>				
+	<TR><TH colspan="4">Heures sup. à 15 %</TH><TD colspan="4"><field name="heure_15"/></TD></TR>
+	<TR><TH colspan="4">Heures sup. à 35 %</TH><TD colspan="4"><field name="heure_35"/></TD></TR>
+	<TR><TH colspan="4">Heures sup. à 40 %</TH><TD colspan="4"><field name="heure_40"/></TD></TR>
+	<TR><TH colspan="4">Heures sup. à 50 %</TH><TD colspan="4"><field name="heure_50"/></TD></TR>	
+	<TR><TH colspan="4">Heures sup. à 60 %</TH><TD colspan="4"><field name="heure_60"/></TD></TR>
+	<TR><TH colspan="4">Heures sup. à 100 %</TH><TD colspan="4"><field name="heure_100"/></TD></TR>
+
+	</table>
+					
+
+					
+                </page>	
+				
+<page string=" Gestion des congés et absences " name="information">
+                           
+               
+      
+			<table class="table table-bordered"  style="width:65%;">
+	<TR>
+	<TH bgcolor="#e3e9ef" colspan="8">Gestion du Congés payé</TH></TR>
+		
+	<TR><TH colspan="4" >Type</TH><TH colspan="4">Quantité</TH></TR>				
+	<TR><TH colspan="4" >Nombre de mois à considérer pour le congé</TH><TD colspan="4"><field name="moistrav"/></TD></TR>
+	<TR><TH colspan="4" >Jours de congés acquis par mois travaillé</TH><TD colspan="4"><field name="jcngpmois"/></TD></TR>
+	<TR><TH colspan="4" >Cumul des congés</TH><TD colspan="4"><field name="leave"/></TD></TR>	
+	<TR><TH colspan="4" >Congé pris</TH><TD colspan="4"><field name="cpris"/></TD></TR>
+	<TR><TH colspan="4" >Congé restant</TH><TD colspan="4"><field name="crest"/></TD></TR>
+
+	</table>		  
+	
+		<table class="table table-bordered"  style="width:65%;">
+	<TR>
+	<TH bgcolor="#e3e9ef" colspan="8">Saisie congés et absences du mois</TH></TR>
+		
+	<TR><TH colspan="4" >Type</TH><TH colspan="4">Quantité</TH></TR>				
+	<TR><TH colspan="4" >Congé Maladie en heures(absence)</TH><TD colspan="4"><field name="conge_maladie_h"/></TD></TR>
+	<TR><TH colspan="4" >Congé Maladie en jours(absence)</TH><TD colspan="4"><field name="conge_maladie_j"/></TD></TR>
+	<!-- <TR><TH colspan="4" >Congé Maladie en jours(absence)</TH><TD colspan="4"><field name="conge_count"/></TD></TR>	 -->
+	<TR><TH colspan="4" >Taux à appliquer pour l'absence maladie(exp. 2/3)) </TH><TD colspan="4"><field name="t_conge_maladie"/></TD></TR>
+	<TR><TH colspan="4" >Absence non justifiée en heures</TH><TD colspan="4"><field name="absence_n_h"/></TD></TR>
+	<TR><TH colspan="4" >Absence non justifiée en jours</TH><TD colspan="4"><field name="absence_n_j"/></TD></TR>	
+	<TR><TH colspan="4" >Congé payé en jours</TH><TD colspan="4"><field name="conge_paye"/></TD></TR>
+	<TR><TH colspan="4" >Congé pris en jours</TH><TD colspan="4"><field name="conge_pris"/></TD></TR>	
+	<TR><TH colspan="4" >Congé de naissance</TH><TD colspan="4"><field name="conge_naissance"/></TD></TR>
+	<TR><TH colspan="4" >Congé de circonstance</TH><TD colspan="4"><field name="conge_circonstance"/></TD></TR>
+	<TR><TH colspan="4" >Jours fériés</TH><TD colspan="4"><field name="ferie_j"/></TD></TR>	
+	<TR><TH colspan="4" >Jours accidents de travail </TH><TD colspan="4"><field name="at_j"/></TD></TR>	
+	<TR><TH colspan="4" >Jours de sanction </TH><TD colspan="4"><field name="sanc_j"/></TD></TR>		
+	</table>
+		<br/><br/>
+	
+	<p>Liste des congés (odoo)</p>
+	
+	 <p><field name="leave_ids" widget="many2many"/></p>			
+	</page>
+	
+<page string="Prêts du mois">
+				
+				
+	<table class="table table-bordered"  style="width:65%;">
+	<TR>
+		<TH bgcolor="#e3e9ef" colspan="8">Saisir le montant  à rembourser du mois</TH></TR>
+    <TR><TH colspan="4">Montant Total du prêt </TH><TH colspan="4"><field name="montantpret"/></TH></TR>
+    <TR><TH colspan="4">Remboursement du mois</TH><TH colspan="4"><field name="montatdeduire"/></TH></TR>
+    <TR><TH colspan="4">Date de la paie</TH><TH colspan="4"><field name="today"/></TH></TR>			
+<TR><TH colspan="4">Mois</TH><TH colspan="4">Montant</TH></TR>		
+		
+
+	
+	<TR><TH colspan="4">Janvier</TH><TD colspan="4"><field name="mois1"/></TD></TR>
+	<TR><TH colspan="4">Février</TH><TD colspan="4"><field name="mois2"/></TD></TR>
+	<TR><TH colspan="4">Mars</TH><TD colspan="4"><field name="mois3"/></TD></TR>
+	<TR><TH colspan="4">Avril</TH><TD colspan="4"><field name="mois4"/></TD></TR>
+	<TR><TH colspan="4">Mai</TH><TD colspan="4"><field name="mois5"/></TD></TR>
+	<TR><TH colspan="4">Juin</TH><TD colspan="4"><field name="mois6"/></TD></TR>
+	<TR><TH colspan="4">Juillet</TH><TD colspan="4"><field name="mois7"/></TD></TR>
+	<TR><TH colspan="4">Août</TH><TD colspan="4"><field name="mois8"/></TD></TR>	
+	<TR><TH colspan="4">Septembre</TH><TD colspan="4"><field name="mois9"/></TD></TR>
+	<TR><TH colspan="4">Octobre</TH><TD colspan="4"><field name="mois10"/></TD></TR>
+	<TR><TH colspan="4">Novembre</TH><TD colspan="4"><field name="mois11"/></TD></TR>	
+	<TR><TH colspan="4">Décembre</TH><TD colspan="4"><field name="mois12"/></TD></TR>		
+
+	</table>
+				
+                </page>	
+	
+	
+			</notebook>								
+
+			
+				
+			</field>
+		</record>
+		
+	  <record model="ir.actions.server" id="action_azero">
+       <field name="name">Remettre à zéro</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="binding_model_id" ref="hr.model_hr_employee"/>
+       <field name="state">code</field>
+	   <field name="binding_view_types">list</field>
+       <field name="code">
+           action = records.action_azero()
+       </field>
+   </record>
+
+</odoo>

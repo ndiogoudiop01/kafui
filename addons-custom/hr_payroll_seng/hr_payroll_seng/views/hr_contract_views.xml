@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+
+    <!-- Contract View -->
+    <record id="hr_contract_form_inherit" model="ir.ui.view">
+        <field name="name">hr.contract.view.form.inherit</field>
+        <field name="model">hr.contract</field>
+        <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
+        <field name="arch" type="xml">
+		
+		<xpath expr="//field[@name='contract_type_id']" position="replace">
+            <field name="type_ctr"/>
+			<field name="contract_type_id" invisible="1"/>
+		
+        </xpath>
+		
+  
+            <xpath expr="//field[@name='job_id']" position="before">
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="currency_id" invisible="1"/>
+            </xpath>
+        
+		    <xpath expr="//field[@name='work_entry_source']" position="replace">
+			
+                <field name="work_entry_source" invisible="1"/>
+            </xpath>
+
+			 <xpath expr="//field[@name='resource_calendar_id']" position="replace">
+			 
+                <field name="resource_calendar_id" invisible="1"/>
+            </xpath>
+
+			
+			
+			
+			<xpath expr="//field[@name='wage_type']" position="replace">
+			 <field name="pay_period"/>
+			 <field name="wage_type" invisible="1"/>
+			  
+               
+            </xpath>
+			
+				
+			<xpath expr="//field[@name='schedule_pay']" position="replace">
+			<field name="pay_period" invisible="1" />
+			<field name="schedule_pay" invisible="1"/>
+                
+            </xpath>
+			
+				<xpath expr="//field[@name='wage']" position="replace">
+				
+				&#x2063;&#x2063;<field  name="wage" string="Salaire de base mensuel " invisible= "pay_period != 'monthly'"/>&#x2063;&#x2063;
+				&#x2063;&#x2063;<field  name="waged" string="Salaire de base journalier" invisible= "pay_period != 'day'"/>	&#x2063;&#x2063;			
+				&#x2063;&#x2063;<field  name="wageh" string="Salaire de base horaire " invisible= "pay_period != 'hourly'"/>&#x2063;&#x2063;
+				
+				</xpath>
+		
+		            <xpath expr="//div[@name='wage_period_label']" position="replace">
+     
+               &#x2063;&#x2063;  <div class="mb-3" invisible="pay_period  != 'monthly'">&#x2063;&#x2063; /mois</div>
+               &#x2063;&#x2063;  <div class="mb-3" invisible="pay_period != 'day'">&#x2063;&#x2063; /jour</div>
+               &#x2063;&#x2063;  <div class="mb-3" invisible="pay_period  != 'hourly'">&#x2063;&#x2063; /heure</div>
+            </xpath>
+				
+				<!-- <group> -->
+				
+
+			
+				<xpath expr="//label[@for='wage']" position="before">
+				
+				<field  name="qualification_amount" invisible="1"/>				
+				<field  name="categorie_id" string="Catégorie"/>
+				<field  name="categorie_taux" invisible="1"/>
+				<field  name="convention_id" string="Convention Collective"/>
+                <field name="payment_mode"/>	
+                <field name="anciennete" string="Ancienneté"/>
+		        <field name="anciennet_bol" string="Activer la prime d'ancienneté"/>				 
+				</xpath>                  
+
+			    <notebook>
+		
+      
+                </notebook>
+				
+				<notebook>
+				
+						<table class="table table-bordered"  style="width:100%;">
+                <TR>
+		<TH bgcolor="#e4ec94" colspan="16">Primes et indemnités </TH></TR>
+		
+	<TR><TH colspan="4" >Indemnité </TH><TH colspan="4">Montant</TH></TR>
+	<TR><TH colspan="4" >Indemnité de transport</TH><TD colspan="4"><field name="indem_transp"/></TD></TR>
+	<TR><TH colspan="4" >Saisir l'indemnité logement</TH><TD colspan="4"><field name="prime_loge"/></TD></TR>
+	<TR><TH colspan="4" >Indemnité de vie chère/bouche </TH><TD colspan="4"><field name="viechere"/></TD></TR>	    
+										
+    
+	</table>	
+				
+				
+                <page string="Primes et indemnités" name="Primes_n_t" >
+				
+             <field name="prime_bol"/> 
+			<table class="table table-bordered"  style="width:100%;" invisible = "prime_bol == False">
+	<TR>
+		<TH bgcolor="#e4ec94" colspan="16">Indemnités,Primes et allocations non soumises à l'IR</TH></TR>
+		
+	<TR><TH colspan="4" bgcolor="#EBEBEB"  >Indemnité </TH><TH colspan="4" bgcolor="#EBEBEB" >Montant</TH><TH colspan="4" bgcolor="#EBEBEB"  >Indemnité </TH><TH colspan="4" bgcolor="#EBEBEB" >Montant</TH></TR>
+
+    <TR><TH colspan="4" >Primes de travail dans des conditions particulières</TH><TD colspan="4"><field name="prime_trav"/></TD><TH colspan="4" >Indemnité d’Équipement</TH><TD colspan="4"><field name="prime_outil"/></TD></TR>
+
+	<TR><TH colspan="4" >Indemnités de déplacement</TH><TD colspan="4"><field name="indem_depl"/></TD><TH colspan="4" >Indemnités de Responsabilité</TH><TD colspan="4"><field name="prime_repr"/></TD></TR>
+    <TR><TH colspan="4" >Indemnités de Dépaysement</TH><TD colspan="4"><field name="indem_depays"/></TD><TH colspan="4" >Frais de voyage</TH><TD colspan="4"><field name="indem_voyage"/></TD></TR>
+
+    <TR><TH colspan="4" >Indemnité de licenciement</TH><TD colspan="4"><field name="indem_licen"/></TD><TH colspan="4" >Indemnité de départ ou mise à la retraite</TH><TD colspan="4"><field name="indem_depart"/></TD></TR>	
+ 
+    <TR><TH colspan="4" >Allocations de stage</TH><TD colspan="4"><field name="alloc_stage"/></TD><TH colspan="4" >Frais inhérents à la fonction</TH><TD colspan="4"><field name="frais_fonc"/></TD></TR>	
+	
+    <TR><TH colspan="4" >Frais de logement(en nature)</TH><TD colspan="4"><field name="frais_loge"/></TD><TH colspan="4" >Aide médicale</TH><TD colspan="4"><field name="aide_medicale"/></TD></TR>	
+ 
+    <TR><TH colspan="4" >Frais eau et électricité(en nature)</TH><TD colspan="4"><field name="frais_conso1"/></TD><TH colspan="4" >Frais Téléphone et Internet(en nature)</TH><TD colspan="4"><field name="frais_conso2"/></TD></TR>
+	
+    <TR><TH colspan="4" >Frais de domesticité(en nature)</TH><TD colspan="4"><field name="frais_conso3"/></TD><TH colspan="4" >Impôts personnels(en nature)</TH><TD colspan="4"><field name="frais_conso4"/></TD></TR>	
+
+    <TR><TH colspan="4" >Transport et carburant(en nature)</TH><TD colspan="4"><field name="frais_conso5"/></TD><TH colspan="4" >Autre prime en nature</TH><TD colspan="4"><field name="prime_nature"/></TD></TR>
+  
+   <TR><TH colspan="4" >Prime de poussière/lait</TH><TD colspan="4"><field name="prime_laitp"/></TD><TH colspan="4" >Autres primes non taxables</TH><TD colspan="4"><field name="prime_ntax"/></TD></TR>	
+     <TR><TH colspan="4" >Indemnités de Monture Personnelle</TH><TD colspan="4"><field name="monture"/></TD></TR>
+	
+
+
+    
+	<TR><TH colspan="4" >Sursalaire</TH><TD colspan="4"><field name="sursal"/></TD><TH colspan="4" >prime de nuit</TH><TD colspan="4"><field name="prime_nuit"/></TD></TR>	
+	
+    <TR><TH colspan="4" >Commission sur ventes</TH><TD colspan="4"><field name="com"/></TD><TH colspan="4" >Prime de rendement</TH><TD colspan="4"><field name="prime_rend"/></TD></TR>
+
+    <TR><TH colspan="4" >Prime de panier</TH><TD colspan="4"><field name="prime_panier"/></TD><TH colspan="4" >Prime Vestimentaire</TH><TD colspan="4"><field name="prime_vest"/></TD></TR>	
+	
+     <TR><TH colspan="4" >Prime de Salissure</TH><TD colspan="4"><field name="prime_salis"/></TD><TH colspan="4" >Indemnité de logement(espèce)</TH><TD colspan="4"><field name="prime_loge"/></TD></TR>	
+
+	<TR><TH colspan="4" >Prime de déplacement</TH><TD colspan="4"><field name="prime_depl"/></TD><TH colspan="4" >Prime 13 ième mois (Cochez)</TH><TD colspan="4"><field name="prime_ann"/></TD></TR>	
+	
+    <TR><TH colspan="4" >Prime du bilan</TH><TD colspan="4"><field name="prime_bilan"/></TD><TH colspan="4" >Autres primes taxables</TH><TD colspan="4"><field name="prime_tax"/></TD></TR>
+
+
+
+</table> 
+
+					</page>
+                </notebook>
+
+
+            </field>
+			
+        </record>
+		
+		
+
+ <record id="hr_contract_kanban_inherit" model="ir.ui.view">
+            <field name="name">hr.contract.view.kanban.inherit</field>
+            <field name="model">hr.contract</field>
+          <field name="inherit_id" ref="hr_contract.hr_contract_view_kanban"/>			
+            <field name="arch" type="xml">
+			
+			
+			<xpath expr="//field[@name='name']" position="after">
+                <p><span>Début du contrat: <field name="date_start"/></span></p>			
+				 <p><span>Nom: <field name="employee_id"/></span></p>
+			</xpath>
+            </field>
+				
+         </record>
+</odoo>

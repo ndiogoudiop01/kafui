@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            Entrées de paie (hr.rule.input) — Côte d'Ivoire
+
+            hr.rule.input est lié à hr.salary.rule (input_ids).
+            get_inputs() pré-remplit automatiquement l'onglet "Autres entrées"
+            lors de la création du bulletin. Le gestionnaire saisit les montants/heures.
+
+            IMPORTANT : le champ 'code' correspond exactement à inputs.CODE
+            utilisé dans amount_python_compute.
+        -->
+
+        <!-- ── Jours et absences ── -->
+        <record id="input_ci_nb_jours" model="hr.rule.input">
+            <field name="name">Nombre de jours travaillés (défaut : 30)</field>
+            <field name="code">NB_JOURS</field>
+            <field name="input_id" ref="rule_ci_nb_jours"/>
+        </record>
+
+        <record id="input_ci_abs_nt_d" model="hr.rule.input">
+            <field name="name">Jours non travaillés (ajustement)</field>
+            <field name="code">ABS_NT_D</field>
+            <field name="input_id" ref="rule_ci_sb_abs"/>
+        </record>
+
+        <!-- ── Heures supplémentaires ── -->
+        <record id="input_ci_hs15_h" model="hr.rule.input">
+            <field name="name">Heures supp. 15 % — Nb d'heures</field>
+            <field name="code">HS15_H</field>
+            <field name="input_id" ref="rule_ci_hs15"/>
+        </record>
+
+        <record id="input_ci_hs50_h" model="hr.rule.input">
+            <field name="name">Heures supp. 50 % — Nb d'heures</field>
+            <field name="code">HS50_H</field>
+            <field name="input_id" ref="rule_ci_hs50"/>
+        </record>
+
+        <record id="input_ci_hs75_h" model="hr.rule.input">
+            <field name="name">Heures supp. 75 % — Nb d'heures</field>
+            <field name="code">HS75_H</field>
+            <field name="input_id" ref="rule_ci_hs75"/>
+        </record>
+
+        <record id="input_ci_hs100_h" model="hr.rule.input">
+            <field name="name">Heures supp. 100 % — Nb d'heures</field>
+            <field name="code">HS100_H</field>
+            <field name="input_id" ref="rule_ci_hs100"/>
+        </record>
+
+        <!-- ── Primes et indemnités imposables ── -->
+        <record id="input_ci_sursal" model="hr.rule.input">
+            <field name="name">Sursalaire</field>
+            <field name="code">SURSAL</field>
+            <field name="input_id" ref="rule_ci_sursal"/>
+        </record>
+
+        <record id="input_ci_pr_rep" model="hr.rule.input">
+            <field name="name">Prime de représentation</field>
+            <field name="code">PR_REP</field>
+            <field name="input_id" ref="rule_ci_pr_rep"/>
+        </record>
+
+        <record id="input_ci_pr_obj" model="hr.rule.input">
+            <field name="name">Prime sur objectif</field>
+            <field name="code">PR_OBJ</field>
+            <field name="input_id" ref="rule_ci_pr_obj"/>
+        </record>
+
+        <record id="input_ci_conges" model="hr.rule.input">
+            <field name="name">Indemnité de congés</field>
+            <field name="code">CONGES</field>
+            <field name="input_id" ref="rule_ci_ind_conge"/>
+        </record>
+
+        <record id="input_ci_gratif" model="hr.rule.input">
+            <field name="name">Gratification / 13e mois</field>
+            <field name="code">GRATIF</field>
+            <field name="input_id" ref="rule_ci_gratif"/>
+        </record>
+
+        <!-- ── Transport (scindé automatiquement NI / imposable) ── -->
+        <record id="input_ci_transport" model="hr.rule.input">
+            <field name="name">Indemnité de transport (total saisi)</field>
+            <field name="code">TRANSPORT</field>
+            <field name="input_id" ref="rule_ci_ind_trans"/>
+        </record>
+
+        <!-- ── Indemnité de fonction (NI ITS) ── -->
+        <record id="input_ci_ind_fonc" model="hr.rule.input">
+            <field name="name">Indemnité de fonction (exo. ITS)</field>
+            <field name="code">IND_FONC</field>
+            <field name="input_id" ref="rule_ci_ind_fonc"/>
+        </record>
+
+        <!-- ── Déductions ── -->
+        <record id="input_ci_cmu_adj" model="hr.rule.input">
+            <field name="name">CMU — correction effectif (±)</field>
+            <field name="code">CMU_ADJ</field>
+            <field name="input_id" ref="rule_ci_cmu_sal"/>
+        </record>
+
+        <record id="input_ci_acompte" model="hr.rule.input">
+            <field name="name">Acompte / Avance sur salaire</field>
+            <field name="code">ACOMPTE</field>
+            <field name="input_id" ref="rule_ci_acompte"/>
+        </record>
+
+        <record id="input_ci_dette" model="hr.rule.input">
+            <field name="name">Remboursement de dettes / prêt</field>
+            <field name="code">DETTE</field>
+            <field name="input_id" ref="rule_ci_ret_dette"/>
+        </record>
+
+    </data>
+</odoo>

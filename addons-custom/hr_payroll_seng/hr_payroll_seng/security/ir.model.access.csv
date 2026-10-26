@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+
+access_hr_cnss,access_hr_cnss,model_hr_cnss,hr_payroll.group_hr_payroll_user,1,1,1,1
+access_hr_cnss_line,access_hr_cnss_line,model_hr_cnss_line,hr_payroll.group_hr_payroll_user,1,1,1,1
+
+access_paie,access_hr_paie,model_hr_paie,hr_payroll.group_hr_payroll_user,1,1,1,1
+access_hr_paie_line,access_hr_paie_line,model_hr_paie_line,hr_payroll.group_hr_payroll_user,1,1,1,1
+
+
+access_hr_payment_mode,access_hr_payment_mode,model_hr_payment_mode,hr_payroll.group_hr_payroll_user,1,1,1,1
+access_hr_qualif_mode,access_hr_qualif_mode,model_hr_qualif_mode,hr_payroll.group_hr_payroll_user,1,1,1,1
+access_hr_conv_mode,access_hr_conv_mode,model_hr_conv_mode,hr_payroll.group_hr_payroll_user,1,1,1,1
+access_model_hr_catego_mode,access_model_hr_catego_mode,model_hr_catego_mode,hr_payroll.group_hr_payroll_user,1,1,1,1

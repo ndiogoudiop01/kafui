@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            Entrées de paie (hr.rule.input) — Niger
+
+            get_inputs() pré-remplit automatiquement l'onglet "Autres entrées"
+            lors de la création du bulletin. Le gestionnaire saisit les montants.
+        -->
+
+        <!-- ── Jours ── -->
+        <record id="input_ne_nb_jours" model="hr.rule.input">
+            <field name="name">Nombre de jours travaillés (défaut : 26)</field>
+            <field name="code">NB_JOURS</field>
+            <field name="input_id" ref="rule_ne_nb_jours"/>
+        </record>
+
+        <!-- ── Charges de famille (pour abattement ITS) ── -->
+        <record id="input_ne_nb_charges" model="hr.rule.input">
+            <field name="name">Nombre de charges de famille (abattement ITS)</field>
+            <field name="code">NB_CHARGES</field>
+            <field name="input_id" ref="rule_ne_its"/>
+        </record>
+
+        <!-- ── Allocation familiale ── -->
+        <record id="input_ne_alloc_fam" model="hr.rule.input">
+            <field name="name">Allocation familiale</field>
+            <field name="code">ALLOC_FAM</field>
+            <field name="input_id" ref="rule_ne_alloc_fam"/>
+        </record>
+
+        <!-- ── Sursalaire ── -->
+        <record id="input_ne_sursal" model="hr.rule.input">
+            <field name="name">Sursalaire</field>
+            <field name="code">SURSAL</field>
+            <field name="input_id" ref="rule_ne_sursal"/>
+        </record>
+
+        <!-- ── Heures supplémentaires ── -->
+        <record id="input_ne_hs25_h" model="hr.rule.input">
+            <field name="name">Heures supplémentaires 25% (nombre d'heures)</field>
+            <field name="code">HS25_H</field>
+            <field name="input_id" ref="rule_ne_hs25"/>
+        </record>
+
+        <record id="input_ne_hs35_h" model="hr.rule.input">
+            <field name="name">Heures supplémentaires 35% (nombre d'heures)</field>
+            <field name="code">HS35_H</field>
+            <field name="input_id" ref="rule_ne_hs35"/>
+        </record>
+
+        <record id="input_ne_hs50_h" model="hr.rule.input">
+            <field name="name">Heures supplémentaires 50% (nombre d'heures)</field>
+            <field name="code">HS50_H</field>
+            <field name="input_id" ref="rule_ne_hs50"/>
+        </record>
+
+        <record id="input_ne_hs100_h" model="hr.rule.input">
+            <field name="name">Heures supplémentaires 100% (nombre d'heures)</field>
+            <field name="code">HS100_H</field>
+            <field name="input_id" ref="rule_ne_hs100"/>
+        </record>
+
+        <!-- ── Autres éléments ── -->
+        <record id="input_ne_autres" model="hr.rule.input">
+            <field name="name">Autres éléments de salaire</field>
+            <field name="code">AUTRES</field>
+            <field name="input_id" ref="rule_ne_autres"/>
+        </record>
+
+        <!-- ── Expatrié (optionnel) ── -->
+        <record id="input_ne_is_expat" model="hr.rule.input">
+            <field name="name">Salarié expatrié (1 = oui, 0 = non)</field>
+            <field name="code">IS_EXPAT</field>
+            <field name="input_id" ref="rule_ne_abat_expat"/>
+        </record>
+
+        <!-- ── Déductions ── -->
+        <record id="input_ne_acompte" model="hr.rule.input">
+            <field name="name">Acompte sur salaire</field>
+            <field name="code">ACOMPTE</field>
+            <field name="input_id" ref="rule_ne_acompte"/>
+        </record>
+
+        <record id="input_ne_pret" model="hr.rule.input">
+            <field name="name">Prêt à court et moyen terme</field>
+            <field name="code">PRET</field>
+            <field name="input_id" ref="rule_ne_pret"/>
+        </record>
+
+        <record id="input_ne_ret_sal" model="hr.rule.input">
+            <field name="name">Retenue sur salaire (trop perçu)</field>
+            <field name="code">RET_SAL</field>
+            <field name="input_id" ref="rule_ne_ret_sal"/>
+        </record>
+
+    </data>
+</odoo>

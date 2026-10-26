@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<template id="certstage_report">
+
+               
+				
+<t t-if="o and 'company_id' in o">
+                        <t t-set="company" t-value="o.company_id"></t>
+                    </t>
+                    <t t-if="not o or not 'company_id' in o">
+                        <t t-set="company" t-value="res_company"></t>
+                    </t>
+     <div class="header">
+      <div class="row">
+                 <div class="col-xs-3 mb4">
+
+         <img t-if="company.logo" t-att-src="'data:image/png;base64,%s' % to_text(company.logo)" style="max-height: 75px;"/>
+                </div>
+               <!--  <div class="col-xs-9 text-right" style="margin-top:22px;" t-field="company.report_header" name="moto"/> -->
+      </div>
+            <div t-if="company.logo or company.report_header" class="row zero_min_height">
+
+            
+</div></div>
+	 
+	             <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+	     <t t-call="web.basic_layout">
+
+	 <div class="page" t-attf-style="background-image:url('/hr_payroll_seng/static/img/bg_background_template.jpg'); background-size:297mm 201mm; width:297mm; height:201mm;">                   
+
+
+
+                                                       <style>
+													   
+								.logo {
+                                    width: 150px;
+                                    height: auto;
+                                    float: left;
+}
+							
+							
+							
+							.box1 {
+                                    width: 36%;
+                                    float: left;
+                                    border: 1px solid #000;
+                                    margin-top: 5px;
+									height: 145px;
+                                    padding: 10px;
+									 font-size: 12px;
+									 border-radius: 15px;
+                                    
+}
+
+.box2 {
+
+                                    width: 20%;
+                                    float: left;
+									height: 120px;
+                                    margin-top: 5px;
+                                    padding: 10px;
+									font-size: 25px;
+}
+
+.box3 {
+
+                                    width: 36%;
+									height: 145px;
+                                    float: right;
+                                    margin-top: 5px;
+                                    padding:10px;
+									border: 1px solid #000;
+									 font-size: 12px;
+									 border-radius: 15px;
+}
+
+.box4 {
+
+
+    position: absolute;
+    right: 0px;
+    width: 35%;
+   font-size: 15px;
+height: 14px;
+}
+
+.tab {
+                                    width: 100%;
+                                    float: left;
+                                    margin-top: 60px;
+
+}
+
+.container {
+    width: 100%;
+ font-size: 11px;
+    margin: auto;
+	height: auto;
+	
+}
+.container2 {
+    width: 100%;
+ float: right;
+    margin: auto;
+	font-size: 9px;
+}
+th {
+  padding: 0.25rem;
+  text-align: center;
+  border: 1px solid #000;
+}
+tr {
+  padding: 0.25rem;
+  text-align: lefy;
+  border: 1px solid #000;
+  padding:10px;
+}
+td {
+  padding: 0.25rem;
+
+  border: 1px solid #000;
+  padding:10px;
+}
+tbody  {
+    padding: 0.25rem;
+  text-align: left;
+  border: 1px solid #000;
+  padding:10px;
+}
+hr {
+  color: #000;
+}												   
+													   
+                                .main-data {
+                                    width: 100%;
+                                   
+                                }
+                                .body {
+                                    
+                                    margin: 30px 0px 10px 0px;
+                                }
+                                .center-data {
+                                    width: 1000px;
+                                    margin: 0px auto;
+                                }
+                                .heading {
+                                    text-align: center;
+                                    margin: 10px 0px 10px 0px;
+                                   ;
+                                }
+                                .job-name {
+                                    width: 100%;
+
+                                }
+                                .employee {
+                                    width: 100%;
+                                    float: left;
+                                }
+                                .solid {
+                                    font-weight: bold;
+                                }
+                                .employee p .liquid {
+                                    margin-left: 10px;
+                                }
+                                .employee p {
+                                    width: 50%;
+                                    float: left;
+                                }
+                                .employee p:nth-child(2) {
+                                    text-align: right;
+                                }
+                                .clearfloat {
+                                    clear: both;
+                                    float: none;
+                                }
+                                ol li {
+                                    margin: 15px 0px;
+                                    line-height: 1.6;
+                                }
+                                ol li,
+                                p {
+                                    text-align: justify;
+                                }
+                                ol li span.line {
+                                    display: block;
+                                }
+                                .center {
+                                    text-align: center;
+                                }
+                                ol li span.center span {
+                                    display: inline-block;
+                                    padding: 0px 20px;
+                                    font-weight: bold;
+                                }
+                                .margin {
+                                    padding:0px 40px;
+                                    margin-left: 50px;
+                                }
+                                .margin2 {
+                                    padding:0px 20px;
+                                    margin-left: 20px;
+									font-size: 20px;
+									
+    font-family: Roboto;
+    src: url(/hr_payroll_seng/static/src/font/Roboto-Regular.ttf)
+}
+                                }
+                                .sign p {
+                                    
+                                    border-top: 1px solid;
+                                    margin-top: 50px;
+                                    display: inline-block;
+                                    font-size: 15px;
+                                }
+                                .gm  {
+                                    margin-top: 80px;
+                                }
+                                .no-margin {
+                                    margin-top: 0px;
+                                    margin-bottom: 0px;
+                                }
+                                .mb0 {
+                                    margin-bottom: 0px;
+                                    font-size: 20px;
+                                }
+                            </style>
+
+                            <div class="main-data">
+                                <div class="center-data">
+                                    <div class="heading">
+                                     <br><br> <br><br><br><br><br><br></br></br></br></br></br></br></br></br>
+                                        <h2>CERTIFICAT DE STAGE</h2>
+                                    </div><br><br><br><br></br></br></br></br>
+     
+                                        <div class="body">
+                                               <p class="margin2"> Nous, soussignés <![CDATA[&nbsp;]]><span t-esc="o.company_id.name"/>, sis, <![CDATA[&nbsp;]]><span t-esc="o.company_id.street"/><![CDATA[&nbsp;]]><span t-esc="o.company_id.street2"/><![CDATA[&nbsp;]]><span t-esc="o.company_id.city"/> 
+                                              attestons par la présente que :</p>
+											 <br><br></br></br>
+											 
+									
+											 <p class="margin2"><t t-esc="o.titre"/> <t t-esc="o.name"/>. </p>
+											 <br></br>
+                                            
+
+<br></br>
+<p class="margin2">Titulaire de la CIN n°  <t t-esc="o.cin"/>, A effectué un stage dans notre entreprise en qualité de   <span t-field="o.job_title"/> du <span t-field="o.contract_id.date_start" t-options='{"widget": "date"}'/> au <span t-field="o.contract_id.date_end" t-options='{"widget": "date"}' />.</p>
+<br></br>
+<p class="margin2">Par sa rigueur et ses qualités professionnelles et humaines, <t t-esc="o.titre"/> <t t-esc="o.name"/> a su trouver sa place au sein de l’équipe. Sa présence a été satisfaisante à tous points de vue.</p>
+<br></br>
+
+<p class="margin2">Ce certificat est délivré à l’intéressé<t t-if="o.titre=='Madame' or o.titre=='Mademoiselle'" >e</t> pour servir et valoir ce que de droit.</p>
+<br><br></br></br>
+<p class="margin2">Fait à <span t-esc="o.company_id.city"/> , le <t t-esc="time.strftime('%d/%m/%Y')"/></p>
+											
+
+<br></br>
+
+
+												<br/><br/><br/><br/><br/><br/>
+											<p class="margin2"><span t-esc="o.company_id.signataire"/></p>
+												<p class="margin2"><span t-esc="o.company_id.fonc_signat"/></p>
+												
+
+												
+												<br><br><br><br></br></br></br></br>
+												
+                           <br><br><br><br></br></br></br></br>                     
+                                           
+<br><br><br><br></br></br></br></br>
+                                       </div>   
+									   </div> 
+									   </div> 
+									   </div>
+                                       
+                                   
+                       
+
+                        
+        
+								<div class="footer">
+            <div class="text-center" style="border-top: 1px solid black;">
+          <div class="container2">      
+                   <ul class="list-inline" style="font:11px roboto !important"> <li> <span t-esc="o.company_id.name"/><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]> <![CDATA[&nbsp;]]> <span t-esc="o.company_id.formeJ"/> </li>
+				    <li>Siège Social :<![CDATA[&nbsp;]]> <span t-esc="o.company_id.street"/><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]> <span t-esc="o.company_id.street2"/><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]> <span t-esc="o.company_id.city"/> </li>
+    <li>Téléphone :<![CDATA[&nbsp;]]><span t-esc="o.company_id.phone"/><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]>Email:<![CDATA[&nbsp;]]> <span t-esc="o.company_id.email"/><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]> Site web: <span t-esc="o.company_id.website"/></li>
+    <li>ICE:<![CDATA[&nbsp;]]> <span t-esc="o.company_id.ice"/><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]> N° CNSS:<![CDATA[&nbsp;]]> <span t-esc="o.company_id.org_ss"/><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]> N° Patente:<![CDATA[&nbsp;]]> <span t-esc="o.company_id.patente"/><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]> N° RC:<![CDATA[&nbsp;]]> <span t-esc="o.company_id.numeroRC"/></li></ul>
+				 
+				  <ul class="list-inline">
+                <li style="font:11px roboto !important"></li>
+                <li style="font:11px roboto !important"><span class="page"/>/<span class="topage"/></li>
+             
+            </ul> 
+
+
+            
+            </div>
+        </div>  </div>
+			
+                </t>
+                </t>
+            
+			</t>      
+        </template>
+</odoo>

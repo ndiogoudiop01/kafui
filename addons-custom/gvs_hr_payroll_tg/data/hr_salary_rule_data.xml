@@ -1,0 +1,581 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- ================================================================
+             RÈGLES SALARIALES — TOGO — BULLETIN MENSUEL
+             Structure : "Togo — Bulletin mensuel" (TG_MENS, unique)
+
+             company_id=False : règles globales, visibles par toutes les
+             sociétés. Elles ne s'appliquent qu'aux contrats utilisant la
+             structure TG_MENS. Bulletins et employés restent liés à leur
+             société.
+
+             API om_hr_payroll v19 (règles amount_select='code') :
+               • categories.CODE       (NOT categories['CODE'])
+               • CODE                  (total de la règle CODE déjà calculée)
+               • contract.wage         (salaire de base contractuel)
+             ================================================================ -->
+
+        <!-- ── seq 10 : TECH_JOURS ── Nombre de jours payés (défaut 30) -->
+        <record id="rule_tg_tech_jours" model="hr.salary.rule">
+            <field name="name">Jours payés (base 30)</field>
+            <field name="code">TECH_JOURS</field>
+            <field name="sequence" eval="10"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">_wd = worked_days.WORK100
+result = _wd.number_of_days if _wd else 30.0</field>
+            <field name="note">Nombre de jours payés = nombre de jours de l'onglet "Jours travaillés et entrées" (ligne WORK100) si renseigné, sinon 30 (mois complet). WORK100 est calculé par get_worked_day_lines() sur une base calendaire de 30 jours (moins congés éventuels) — pas sur le calendrier hebdomadaire — donc directement comparable à 30. Un élément variable (hr.employee.bonus) ciblant cette règle reste prioritaire et écrase ce calcul (pour les cas particuliers non couverts par WORK100).</field>
+        </record>
+
+        <!-- ── seq 30 : BASIC ── Salaire de base proratisé × jours/30 -->
+        <record id="rule_tg_basic" model="hr.salary.rule">
+            <field name="name">Salaire de base</field>
+            <field name="code">BASIC</field>
+            <field name="sequence" eval="30"/>
+            <field name="category_id" ref="om_hr_payroll.BASIC"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = contract.wage * min(TECH_JOURS, 30) / 30</field>
+            <field name="note">contract.wage = salaire de base du contrat. Proratisé sur min(TECH_JOURS, 30) / 30 (le plafond évite tout dépassement si WORK100 &gt; 30 jours).</field>
+        </record>
+
+        <!-- ── seq 35 : IND_KM ── Indemnité kilométrique imposable (soumise CNSS + IRPP) -->
+        <record id="rule_tg_ind_km" model="hr.salary.rule">
+            <field name="name">Indemnité kilométrique (imposable)</field>
+            <field name="code">IND_KM</field>
+            <field name="sequence" eval="35"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="note">Allocation imposable (soumise CNSS + IRPP). Montant saisi mensuellement via l'onglet Éléments variables du contrat.</field>
+        </record>
+
+        <!-- ── seq 40 : IND_TRANS ── Indemnité de transport (imposable, soumise CNSS) -->
+        <record id="rule_tg_ind_trans" model="hr.salary.rule">
+            <field name="name">Indemnité de transport</field>
+            <field name="code">IND_TRANS</field>
+            <field name="sequence" eval="40"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 50 : IND_TEL ── Téléphone (imposable) -->
+        <record id="rule_tg_ind_tel" model="hr.salary.rule">
+            <field name="name">Téléphone</field>
+            <field name="code">IND_TEL</field>
+            <field name="sequence" eval="50"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 60 : IND_LOG ── Indemnité de logement (imposable) -->
+        <record id="rule_tg_ind_log" model="hr.salary.rule">
+            <field name="name">Indemnité de logement</field>
+            <field name="code">IND_LOG</field>
+            <field name="sequence" eval="60"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 70 : HS ── Heures supplémentaires (montant global) -->
+        <record id="rule_tg_hs" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires</field>
+            <field name="code">HS</field>
+            <field name="sequence" eval="70"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 80 : ANC ── Prime d'ancienneté -->
+        <!-- Règle : 0% avant 2 ans, 2% de 2 à 3 ans,
+             à partir de la 4ème année : 2% + 1%/an au-delà de 3 ans,
+             plafonné à 35%.
+
+             Date de référence : fin de période du bulletin (payslip.dict.date_to).
+             Cela garantit que l'ancienneté est calculée sur tout le mois du
+             bulletin — un employé qui atteint 2 ans EN COURS DE MOIS reçoit
+             bien la prime sur le bulletin entier, sans attendre le mois suivant.
+
+             Date d'embauche = la PLUS ANCIENNE parmi :
+               - contract.dateAnciennete  (khk_hr_payor, si renseignée)
+               - contract.contract_date_start (date de début du contrat)
+             On prend min() pour donner le maximum d'ancienneté à l'employé
+             et pour ne pas pénaliser ceux dont dateAnciennete a été mal importée.
+             Ne PAS utiliser contract.date_start = max(date_version, contract_date_start)
+             qui renvoie la date de migration pour les employés importés. -->
+        <record id="rule_tg_anc" model="hr.salary.rule">
+            <field name="name">Prime d'ancienneté</field>
+            <field name="code">ANC</field>
+            <field name="sequence" eval="80"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">_d1 = contract.dateAnciennete if ('dateAnciennete' in contract._fields and contract.dateAnciennete) else None
+_d2 = contract.contract_date_start or None
+_anc_ref = min(_d1, _d2) if (_d1 and _d2) else (_d1 or _d2)
+_anc_end = payslip.dict.date_to
+nb_years = max(0, int((_anc_end - _anc_ref).days / 365)) if _anc_ref else 0
+if nb_years &lt; 2:
+    taux = 0.0
+elif nb_years &lt; 4:
+    taux = 0.02
+else:
+    taux = min(0.02 + (nb_years - 3) * 0.01, 0.35)
+result = round(BASIC * taux)</field>
+            <field name="note">Plafond 35%. 0% avant 2 ans. 2% de 2 à 3 ans. A partir de la 4ème année : 2% + 1% par année supplémentaire au-delà de 3 ans. L'ancienneté est calculée au dernier jour du mois du bulletin.</field>
+        </record>
+
+        <!-- ── seq 90 : HS20 ── Heures supplémentaires majorées 20 % -->
+        <record id="rule_tg_hs20" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 20 %</field>
+            <field name="code">HS20</field>
+            <field name="sequence" eval="90"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 100 : HS40 ── Heures supplémentaires majorées 40 % -->
+        <record id="rule_tg_hs40" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 40 %</field>
+            <field name="code">HS40</field>
+            <field name="sequence" eval="100"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 110 : HS65 ── Heures supplémentaires majorées 65 % -->
+        <record id="rule_tg_hs65" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 65 %</field>
+            <field name="code">HS65</field>
+            <field name="sequence" eval="110"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 120 : HS100 ── Heures supplémentaires majorées 100 % -->
+        <record id="rule_tg_hs100" model="hr.salary.rule">
+            <field name="name">Heures supplémentaires 100 %</field>
+            <field name="code">HS100</field>
+            <field name="sequence" eval="120"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 130 : AUTRE_GAIN ── Autre gain imposable (ligne libre) -->
+        <record id="rule_tg_autre_gain" model="hr.salary.rule">
+            <field name="name">Autre gain</field>
+            <field name="code">AUTRE_GAIN</field>
+            <field name="sequence" eval="130"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 140 : SURSAL ── Sursalaire (imposable, soumis CNSS) -->
+        <record id="rule_tg_sursal" model="hr.salary.rule">
+            <field name="name">Sursalaire</field>
+            <field name="code">SURSAL</field>
+            <field name="sequence" eval="140"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 150 : CP ── Congé payé (imposable, soumis CNSS) -->
+        <record id="rule_tg_cp" model="hr.salary.rule">
+            <field name="name">Congé payé</field>
+            <field name="code">CP</field>
+            <field name="sequence" eval="150"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 160 : GROSS ── Salaire brut = BASIC + ALW (IND_KM incluse) -->
+        <record id="rule_tg_gross" model="hr.salary.rule">
+            <field name="name">Salaire brut</field>
+            <field name="code">GROSS</field>
+            <field name="sequence" eval="160"/>
+            <field name="category_id" ref="om_hr_payroll.GROSS"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = categories.BASIC + categories.ALW</field>
+            <field name="note">Brut imposable = base + indemnités imposables (IND_KM incluse). Les indemnités non taxables (ALW_NI) sont exclues.</field>
+        </record>
+
+        <!-- ── seq 170 : CNSS ── Retenue CNSS+INAM 9 % salariale, sans plafond -->
+        <record id="rule_tg_cnss" model="hr.salary.rule">
+            <field name="name">Retenue CNSS + INAM (9 %)</field>
+            <field name="code">CNSS</field>
+            <field name="sequence" eval="170"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = -categories.GROSS
+result_rate = 9.0</field>
+            <field name="note">9 % du brut (4 % CNSS + 5 % INAM). Sans plafond. Résultat négatif.</field>
+        </record>
+
+        <!-- ── seq 180 : BRUT_IMP ── Brut imposable = GROSS - CNSS, arrondi au supérieur -->
+        <record id="rule_tg_brut_imp" model="hr.salary.rule">
+            <field name="name">Brut imposable</field>
+            <field name="code">BRUT_IMP</field>
+            <field name="sequence" eval="180"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">bi = categories.GROSS - abs(CNSS)
+result = int(bi) + (bi > int(bi))</field>
+            <field name="note">= brut - cotisations sociales déductibles, arrondi à l'unité supérieure (ROUNDUP).</field>
+        </record>
+
+        <!-- ── seq 190 : ABAT28 ── Abattement 28 % plafonné à 833 333 F/mois -->
+        <record id="rule_tg_abat28" model="hr.salary.rule">
+            <field name="name">Abattement forfaitaire 28 %</field>
+            <field name="code">ABAT28</field>
+            <field name="sequence" eval="190"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = min(BRUT_IMP, 833333) * 0.28</field>
+            <field name="note">28 % sur brut imposable plafonné à 833 333 F/mois (10 M F/an). Abattement max : 233 333 F/mois.</field>
+        </record>
+
+        <!-- ── seq 200 : CHARGE ── Déduction personnes à charge (10 000 F × min(n,6)/mois) -->
+        <record id="rule_tg_charge" model="hr.salary.rule">
+            <field name="name">Déduction personnes à charge</field>
+            <field name="code">CHARGE</field>
+            <field name="sequence" eval="200"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = 10000 * min(employee.nb_charge, 6)</field>
+            <field name="note">10 000 F/mois par personne à charge, plafonné à 6. Calculé depuis l'onglet Famille (relation.famille : conjoint non salarié +1, enfant moins de 18 ans +1).</field>
+        </record>
+
+        <!-- ── seq 210 : BASE_IRPP ── Base imposable IRPP, arrondie au millier inférieur -->
+        <record id="rule_tg_base_irpp" model="hr.salary.rule">
+            <field name="name">Base imposable IRPP</field>
+            <field name="code">BASE_IRPP</field>
+            <field name="sequence" eval="210"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = max(0, int((BRUT_IMP - ABAT28 - CHARGE) // 1000) * 1000)</field>
+            <field name="note">= brut imposable - abattement 28 % - personnes à charge, arrondi au millier inférieur (ROUNDDOWN).</field>
+        </record>
+
+        <!-- ── seq 220 : IRPP ── Impôt progressif barème 2023 (annualisé, dizaine inférieure) -->
+        <record id="rule_tg_irpp" model="hr.salary.rule">
+            <field name="name">IRPP</field>
+            <field name="code">IRPP</field>
+            <field name="sequence" eval="220"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">a = BASE_IRPP * 12
+t = (0.03 * max(0, min(a, 3000000) - 900000)
+     + 0.10 * max(0, min(a, 6000000) - 3000000)
+     + 0.15 * max(0, min(a, 9000000) - 6000000)
+     + 0.20 * max(0, min(a, 12000000) - 9000000)
+     + 0.25 * max(0, min(a, 15000000) - 12000000)
+     + 0.30 * max(0, min(a, 20000000) - 15000000)
+     + 0.35 * max(0, a - 20000000))
+result = -(int(max(t, 3000) / 120) * 10) * (a > 0)</field>
+            <field name="note">Barème 2023 : 0%(0-900k), 3%(900k-3M), 10%(3-6M), 15%(6-9M), 20%(9-12M), 25%(12-15M), 30%(15-20M), 35%(>20M). Minimum 3 000 F/an. Arrondi dizaine inférieure.</field>
+        </record>
+
+        <!-- ── seq 230 : TCS ── Taxe complémentaire sur salaires (saisie sur contrat, 0 par défaut) -->
+        <record id="rule_tg_tcs" model="hr.salary.rule">
+            <field name="name">TCS — Taxe complémentaire sur salaires</field>
+            <field name="code">TCS</field>
+            <field name="sequence" eval="230"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="quantity">-1</field>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="note">Saisir le montant positif dans l'onglet Éléments variables du contrat. quantity=-1 rend le résultat négatif (retenue).</field>
+        </record>
+
+        <!-- ── seq 240 : TOT_RET_LEG ── Total retenues légales (sous-total CNSS+IRPP+TCS) -->
+        <record id="rule_tg_tot_ret_leg" model="hr.salary.rule">
+            <field name="name">Total retenues légales</field>
+            <field name="code">TOT_RET_LEG</field>
+            <field name="sequence" eval="240"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = CNSS + IRPP + TCS</field>
+            <field name="note">Sous-total de contrôle (négatif). Masqué : Odoo affiche déjà le total DED.</field>
+        </record>
+
+        <!-- ── seq 250 : NET_RET_LEG ── Salaire net intermédiaire après retenues légales -->
+        <record id="rule_tg_net_ret_leg" model="hr.salary.rule">
+            <field name="name">Salaire net après retenues légales</field>
+            <field name="code">NET_RET_LEG</field>
+            <field name="sequence" eval="250"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = categories.GROSS + TOT_RET_LEG</field>
+            <field name="note">Étape intermédiaire avant réintégration des indemnités non taxables.</field>
+        </record>
+
+        <!-- ── seq 265 : IND_KM_NI ── Indemnité kilométrique non imposable -->
+        <!-- Catégorie ALW_NI : exclue du brut imposable (GROSS), non soumise à
+             CNSS/INAM ni à l'IRPP. Réintégrée dans le net via TOT_IND_NT (seq 280).
+             Montant par défaut = contract.forfait_km (champ du contrat).
+             Peut être écrasé mois par mois via l'onglet Éléments variables. -->
+        <record id="rule_tg_ind_km_ni" model="hr.salary.rule">
+            <field name="name">Indemnité kilométrique (non imposable)</field>
+            <field name="code">IND_KM_NI</field>
+            <field name="sequence" eval="265"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.ALW_NI"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = contract.forfait_km or 0</field>
+            <field name="note">Indemnité kilométrique non imposable. Non soumise à CNSS/INAM ni à l'IRPP. Valeur par défaut : champ « Forfait kilométrique » du contrat. Peut être surchargée mensuellemment via l'onglet Éléments variables.</field>
+        </record>
+
+        <!-- ── seq 270 : AUTRE_IND_NT ── Autre indemnité non taxable (ligne libre) -->
+        <record id="rule_tg_autre_ind_nt" model="hr.salary.rule">
+            <field name="name">Autre indemnité non taxable</field>
+            <field name="code">AUTRE_IND_NT</field>
+            <field name="sequence" eval="270"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.ALW_NI"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ── seq 280 : TOT_IND_NT ── Total indemnités non taxables (sous-total ALW_NI) -->
+        <record id="rule_tg_tot_ind_nt" model="hr.salary.rule">
+            <field name="name">Total indemnités non taxables</field>
+            <field name="code">TOT_IND_NT</field>
+            <field name="sequence" eval="280"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = categories.ALW_NI</field>
+        </record>
+
+        <!-- ── seq 290 : AV_SAL ── Retenue avance sur salaire -->
+        <record id="rule_tg_av_sal" model="hr.salary.rule">
+            <field name="name">Avance sur salaire</field>
+            <field name="code">AV_SAL</field>
+            <field name="sequence" eval="290"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="quantity">-1</field>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="note">Saisir le montant positif dans l'onglet Éléments variables du contrat. quantity=-1 rend le résultat négatif (retenue).</field>
+        </record>
+
+        <!-- ── seq 300 : AUTRE_RET ── Autres retenues (ligne libre) -->
+        <record id="rule_tg_autre_ret" model="hr.salary.rule">
+            <field name="name">Autres retenues</field>
+            <field name="code">AUTRE_RET</field>
+            <field name="sequence" eval="300"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">fix</field>
+            <field name="amount_fix" eval="0"/>
+            <field name="quantity">-1</field>
+            <field name="is_prorata" eval="False"/>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="note">Saisir le montant positif dans l'onglet Éléments variables du contrat. quantity=-1 rend le résultat négatif (retenue).</field>
+        </record>
+
+        <!-- ── seq 305 : CNSS_PAT ── Charges patronales CNSS 17,5 % (arrondi supérieur) -->
+        <record id="rule_tg_cnss_pat" model="hr.salary.rule">
+            <field name="name">Charges patronales CNSS (17,5 %)</field>
+            <field name="code">CNSS_PAT</field>
+            <field name="sequence" eval="305"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">c = categories.GROSS * 0.175
+result = int(c) + (c > int(c))</field>
+            <field name="note">17,5 % du brut, arrondi supérieur. N'affecte pas le net salarié (catégorie COMP).</field>
+        </record>
+
+        <!-- ── seq 306 : CNSS_OUV_4 ── Part CNSS 4 % (info déclaration, non affiché) -->
+        <record id="rule_tg_cnss_ouv_4" model="hr.salary.rule">
+            <field name="name">Cotisations ouvrières CNSS 4 % (info)</field>
+            <field name="code">CNSS_OUV_4</field>
+            <field name="sequence" eval="306"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = -int(categories.GROSS * 0.04)</field>
+            <field name="note">Sous-partie CNSS pure des 9 %. Isolée pour déclaration CNSS. Pas de retenue supplémentaire.</field>
+        </record>
+
+        <!-- ── seq 310 : NET ── Net à payer (arrondi à l'unité inférieure) -->
+        <record id="rule_tg_net" model="hr.salary.rule">
+            <field name="name">Net à payer</field>
+            <field name="code">NET</field>
+            <field name="sequence" eval="310"/>
+            <field name="category_id" ref="om_hr_payroll.NET"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = int(categories.BASIC + categories.ALW + categories.ALW_NI + categories.DED)</field>
+            <field name="note">NET = brut imposable + ind. non taxables - toutes retenues. Arrondi unité inférieure.</field>
+        </record>
+
+        <!-- ── seq 340 : TOT_CHARGE_PAT ── Coût total employeur -->
+        <record id="rule_tg_tot_charge_pat" model="hr.salary.rule">
+            <field name="name">Total charges patron (coût employeur)</field>
+            <field name="code">TOT_CHARGE_PAT</field>
+            <field name="sequence" eval="340"/>
+            <field name="category_id" ref="gvs_hr_payroll_tg.TECH"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+            <field name="amount_python_compute">result = abs(IRPP) + abs(CNSS_OUV_4) + CNSS_PAT + NET</field>
+            <field name="note">Coût employeur = NET + IRPP + CNSS 4% ouvrière + charges patronales 17,5%.</field>
+        </record>
+
+    </data>
+</odoo>

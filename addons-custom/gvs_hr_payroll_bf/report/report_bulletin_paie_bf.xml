@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Action rapport — Bulletin de Paie Burkina Faso
+         Disponible dans le menu "Imprimer" sur hr.payslip
+         domain : visible uniquement depuis les sociétés du Burkina Faso
+         ================================================================ -->
+    <record id="action_report_bulletin_paie_bf" model="ir.actions.report">
+        <field name="name">Bulletin de Paie Burkina Faso</field>
+        <field name="model">hr.payslip</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">gvs_hr_payroll_bf.report_bulletin_paie_bf_template</field>
+        <field name="report_file">gvs_hr_payroll_bf.report_bulletin_paie_bf_template</field>
+        <field name="print_report_name">('Bulletin BF - %s - %s' % (object.employee_id.name, object.date_from.strftime('%m/%Y') if object.date_from else ''))</field>
+        <field name="binding_model_id" ref="om_hr_payroll.model_hr_payslip"/>
+        <field name="binding_type">report</field>
+        <field name="domain">[('company_id.country_id.code', '=', 'BF')]</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+
+    <!-- ================================================================
+         Template QWeb — Bulletin de Paie Burkina Faso
+         ================================================================ -->
+    <template id="report_bulletin_paie_bf_template">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page" style="font-size:10pt; padding-top:15px;">
+
+                        <!-- ═══ EN-TÊTE ═══ -->
+                        <table width="100%" style="margin-bottom:6px; border-collapse:collapse;">
+                            <tr>
+                                <td style="width:55%; vertical-align:top;">
+                                    <strong style="font-size:12pt;">
+                                        <t t-esc="o.company_id.name"/>
+                                    </strong>
+                                    <t t-if="o.company_id.vat">
+                                        <br/>IFU : <t t-esc="o.company_id.vat"/>
+                                    </t>
+                                    <t t-if="o.company_id.company_registry">
+                                        <br/>RCCM : <t t-esc="o.company_id.company_registry"/>
+                                    </t>
+                                    <br/>
+                                    <t t-esc="o.company_id.street or ''"/>
+                                    <t t-if="o.company_id.city">
+                                        — <t t-esc="o.company_id.city"/>
+                                    </t>
+                                </td>
+                                <td style="width:45%; vertical-align:top; text-align:right;">
+                                    <h3 style="margin:0; color:#7b3f00;">BULLETIN DE PAIE</h3>
+                                    <p style="margin:4px 0;">
+                                        Mois de :
+                                        <strong>
+                                            <t t-esc="o.date_from" t-options="{'widget': 'date', 'format': 'MMMM yyyy'}"/>
+                                        </strong>
+                                    </p>
+                                    <p style="margin:4px 0;">
+                                        Période du
+                                        <strong><t t-esc="o.date_from" t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"/></strong>
+                                        au
+                                        <strong><t t-esc="o.date_to" t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"/></strong>
+                                    </p>
+                                    <t t-if="o.number">
+                                        <p style="margin:4px 0;">Réf. : <t t-esc="o.number"/></p>
+                                    </t>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <hr style="border:1px solid #7b3f00; margin:4px 0;"/>
+
+                        <!-- ═══ IDENTITÉ EMPLOYÉ ═══ -->
+                        <table width="100%" style="margin-bottom:6px; border-collapse:collapse; font-size:9pt;">
+                            <tr>
+                                <td style="width:22%;"><strong>Employé :</strong></td>
+                                <td style="width:30%;"><t t-esc="o.employee_id.name"/></td>
+                                <td style="width:24%;"><strong>N° CNSS :</strong></td>
+                                <td style="width:24%;"><t t-esc="o.employee_id.ssnid or ''"/></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Poste :</strong></td>
+                                <td><t t-esc="o.employee_id.job_id.name or ''"/></td>
+                                <td><strong>Date d'entrée :</strong></td>
+                                <td>
+                                    <t t-if="o.version_id and o.version_id.date_start">
+                                        <t t-esc="o.version_id.date_start" t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"/>
+                                    </t>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Département :</strong></td>
+                                <td><t t-esc="o.employee_id.department_id.name or ''"/></td>
+                                <td><strong>Statut marital :</strong></td>
+                                <td>
+                                    <t t-if="o.employee_id.marital == 'married'">Marié(e)</t>
+                                    <t t-elif="o.employee_id.marital == 'cohabitant'">Concubin(e)</t>
+                                    <t t-elif="o.employee_id.marital == 'divorced'">Divorcé(e)</t>
+                                    <t t-elif="o.employee_id.marital == 'widower'">Veuf/Veuve</t>
+                                    <t t-else="">Célibataire</t>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Structure :</strong></td>
+                                <td><t t-esc="o.struct_id.name or ''"/></td>
+                                <td><strong>Enfants à charge :</strong></td>
+                                <td><t t-esc="o.employee_id.children or 0"/></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Jours travaillés :</strong></td>
+                                <td>
+                                    <t t-set="nb_jours_line" t-value="o.line_ids.filtered(lambda l: l.code == 'NB_JOURS')"/>
+                                    <t t-if="nb_jours_line">
+                                        <t t-esc="'{:.0f} j'.format(nb_jours_line[0].total)"/>
+                                    </t>
+                                    <t t-else="">—</t>
+                                </td>
+                                <td><strong>Taux horaire :</strong></td>
+                                <td>
+                                    <t t-set="sb_line_h" t-value="o.line_ids.filtered(lambda l: l.code == 'SB')"/>
+                                    <t t-if="sb_line_h">
+                                        <t t-esc="'{:,.0f}'.format(sb_line_h[0].total / 173.33).replace(',', ' ')"/> FCFA/h
+                                    </t>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <hr style="border:1px solid #cccccc; margin:4px 0;"/>
+
+                        <!-- ═══ TABLEAU DES RUBRIQUES ═══
+                             Colonnes : Code | Libellé | Base | Taux/NB | Retenues | Gains
+                        -->
+                        <table width="100%" style="border-collapse:collapse; font-size:9pt; margin-bottom:6px;">
+                            <thead>
+                                <tr style="background:#7b3f00; color:white; text-align:center;">
+                                    <th style="border:1px solid #aaa; padding:3px; width:9%;">Code</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:32%;">Rubriques</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:15%; text-align:right;">Base</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:10%; text-align:right;">Taux/NB</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:17%; text-align:right;">Retenues</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:17%; text-align:right;">Gains</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                                <!-- ── Gains imposables (BASIC + ALW) ── -->
+                                <t t-foreach="o.line_ids.filtered(lambda l: l.appears_on_payslip and l.category_id.code in ('BASIC', 'ALW') and l.total != 0)" t-as="line">
+                                    <tr>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.code"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.name"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <!-- Base : SB pour PR_ANC, base horaire×heures pour HS, vide sinon -->
+                                            <t t-if="line.code in ('PR_ANC', 'HS10', 'HS35', 'HS50', 'HS75', 'HS100') or (line.rate and line.rate != 100.0)">
+                                                <t t-esc="'{:,.0f}'.format(abs(line.amount)).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <!-- Taux : % ancienneté ou majoration HS -->
+                                            <t t-if="line.code in ('PR_ANC', 'HS10', 'HS35', 'HS50', 'HS75', 'HS100') or (line.rate and line.rate != 100.0)">
+                                                <t t-esc="'{:.2f} %'.format(line.rate)"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-if="line.total &lt; 0">
+                                                <t t-esc="'{:,.0f}'.format(abs(line.total)).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-if="line.total &gt;= 0">
+                                                <t t-esc="'{:,.0f}'.format(line.total).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                </t>
+
+                                <!-- ── BRUT IMPOSABLE (sous-total avant indemnités exonérées) ── -->
+                                <t t-set="brut_imp_line" t-value="o.line_ids.filtered(lambda l: l.code == 'BRUT_IMP')"/>
+
+                                <!-- ── Indemnités exonérées IUTS (ALW_NI_BF : IND_FONCT) ── -->
+                                <t t-foreach="o.line_ids.filtered(lambda l: l.appears_on_payslip and l.category_id.code == 'ALW_NI_BF' and l.total != 0)" t-as="line">
+                                    <tr>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.code"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.name"/> <em style="font-size:8pt; color:#888;">(exo. IUTS)</em></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(line.total).replace(',', ' ')"/>
+                                        </td>
+                                    </tr>
+                                </t>
+
+                                <!-- ── RÉM. BRUTE TOTALE ── -->
+                                <t t-set="brut_line" t-value="o.line_ids.filtered(lambda l: l.code == 'BRUT')"/>
+                                <t t-if="brut_line">
+                                    <tr style="background:#f0e6d3; font-weight:bold;">
+                                        <td style="border:1px solid #aaa; padding:2px 4px;" colspan="2">RÉM. BRUTE TOTALE</td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(brut_line[0].total).replace(',', ' ')"/>
+                                        </td>
+                                    </tr>
+                                </t>
+
+                                <!-- ── Retenues salariales (DED) ── -->
+                                <t t-set="base_iuts_line" t-value="o.line_ids.filtered(lambda l: l.code == 'BASE_IUTS')"/>
+                                <t t-set="cnss_base_line" t-value="o.line_ids.filtered(lambda l: l.code == 'CNSS_BASE')"/>
+                                <t t-foreach="o.line_ids.filtered(lambda l: l.appears_on_payslip and l.category_id.code == 'DED' and l.total != 0)" t-as="line">
+                                    <tr>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.code"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.name"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <!-- Base de calcul selon la règle -->
+                                            <t t-if="line.code == 'CNSS_SAL' and cnss_base_line">
+                                                <!-- Base CNSS = montant plafonné -->
+                                                <t t-esc="'{:,.0f}'.format(cnss_base_line[0].total).replace(',', ' ')"/>
+                                            </t>
+                                            <t t-elif="line.code == 'IUTS' and base_iuts_line">
+                                                <!-- Base IUTS = base imposable mensuelle -->
+                                                <t t-esc="'{:,.0f}'.format(base_iuts_line[0].total).replace(',', ' ')"/>
+                                            </t>
+                                            <t t-elif="line.code == 'FSP' and brut_line">
+                                                <!-- Base FSP = Net Fiscal = Brut - CNSS - IUTS -->
+                                                <t t-set="cnss_sal_line" t-value="o.line_ids.filtered(lambda l: l.code == 'CNSS_SAL')"/>
+                                                <t t-set="iuts_line_v" t-value="o.line_ids.filtered(lambda l: l.code == 'IUTS')"/>
+                                                <t t-if="cnss_sal_line and iuts_line_v">
+                                                    <t t-esc="'{:,.0f}'.format(brut_line[0].total + cnss_sal_line[0].total + iuts_line_v[0].total).replace(',', ' ')"/>
+                                                </t>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <!-- Taux/NB -->
+                                            <t t-if="line.code == 'IUTS' and base_iuts_line and base_iuts_line[0].total">
+                                                <!-- Taux effectif IUTS = abs(IUTS) / BASE_IUTS × 100 -->
+                                                <t t-esc="'{:.2f} %'.format(abs(line.total) / base_iuts_line[0].total * 100)"/>
+                                            </t>
+                                            <t t-elif="line.rate and line.rate != 100.0">
+                                                <t t-esc="'{:.2f} %'.format(line.rate)"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(abs(line.total)).replace(',', ' ')"/>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;"></td>
+                                    </tr>
+                                </t>
+
+                                <!-- ── NET À PAYER ── -->
+                                <t t-set="net_line" t-value="o.line_ids.filtered(lambda l: l.code == 'NET')"/>
+                                <tr style="background:#7b3f00; color:white; font-weight:bold; font-size:11pt;">
+                                    <td style="border:1px solid #aaa; padding:4px;" colspan="2">NET À PAYER</td>
+                                    <td style="border:1px solid #aaa; padding:4px;"></td>
+                                    <td style="border:1px solid #aaa; padding:4px;"></td>
+                                    <td style="border:1px solid #aaa; padding:4px;"></td>
+                                    <td style="border:1px solid #aaa; padding:4px; text-align:right;">
+                                        <t t-if="net_line">
+                                            <t t-esc="'{:,.0f}'.format(net_line[0].total).replace(',', ' ')"/> FCFA
+                                        </t>
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+
+                        <!-- ═══ CHARGES PATRONALES ═══ -->
+                        <table width="100%" style="border-collapse:collapse; font-size:9pt; margin-bottom:6px;">
+                            <thead>
+                                <tr style="background:#5d4037; color:white; text-align:center;">
+                                    <th style="border:1px solid #aaa; padding:3px; width:9%;">Code</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:42%;">Charges patronales</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:15%; text-align:right;">Base</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:10%; text-align:right;">Taux</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:24%; text-align:right;">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="o.line_ids.filtered(lambda l: l.appears_on_payslip and l.category_id.code == 'COMP' and l.total != 0)" t-as="line">
+                                    <tr>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.code"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.name"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-if="cnss_base_line">
+                                                <t t-esc="'{:,.0f}'.format(cnss_base_line[0].total).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-if="line.rate and line.rate != 100.0">
+                                                <t t-esc="'{:.2f} %'.format(line.rate)"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(line.total).replace(',', ' ')"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                                <!-- Total charges patronales -->
+                                <t t-set="tot_pat_line" t-value="o.line_ids.filtered(lambda l: l.code == 'TOT_PAT')"/>
+                                <t t-if="tot_pat_line">
+                                    <tr style="background:#f5f5f5; font-weight:bold;">
+                                        <td style="border:1px solid #aaa; padding:2px 4px;" colspan="4">TOTAL CHARGES PATRONALES</td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(tot_pat_line[0].total).replace(',', ' ')"/> FCFA
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+
+                        <!-- ═══ PIED DE BULLETIN ═══ -->
+                        <table width="100%" style="border-collapse:collapse; font-size:9pt; margin-top:8px;">
+                            <tr>
+                                <td style="width:40%; vertical-align:top;">
+                                    <strong>Base imposable IUTS :</strong><br/>
+                                    <t t-if="base_iuts_line">
+                                        <t t-esc="'{:,.0f}'.format(base_iuts_line[0].total).replace(',', ' ')"/> FCFA/mois
+                                    </t>
+                                </td>
+                                <td style="width:30%; vertical-align:top; text-align:center;">
+                                    <strong>Ancienneté :</strong><br/>
+                                    <t t-set="pr_anc_line" t-value="o.line_ids.filtered(lambda l: l.code == 'PR_ANC')"/>
+                                    <t t-if="pr_anc_line">
+                                        <t t-esc="'{:.0f} %'.format(pr_anc_line[0].rate)"/>
+                                        (<t t-esc="'{:.0f} an(s)'.format(pr_anc_line[0].rate)"/>)
+                                    </t>
+                                </td>
+                                <td style="width:30%; text-align:right;">
+                                    <strong>Date de paiement :</strong><br/>
+                                    <t t-if="o.date_to">
+                                        <t t-esc="o.date_to" t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"/>
+                                    </t>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <hr style="border:1px solid #cccccc; margin:8px 0;"/>
+
+                        <!-- ═══ SIGNATURES ═══ -->
+                        <table width="100%" style="margin-top:12px; font-size:9pt;">
+                            <tr>
+                                <td style="width:50%; text-align:center;">
+                                    <p>Signature de l'employeur</p>
+                                    <br/><br/><br/>
+                                    <p>________________________</p>
+                                </td>
+                                <td style="width:50%; text-align:center;">
+                                    <p>Signature de l'employé (Lu et approuvé)</p>
+                                    <br/><br/><br/>
+                                    <p>________________________</p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <p style="font-size:7pt; color:#888; text-align:center; margin-top:8px;">
+                            Bulletin de paie à conserver sans limitation de durée — Burkina Faso
+                        </p>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+
+
+
+	
+	<template id="report_cnss">
+	    	    <t t-call="web.html_container">
+				<t t-foreach="docs" t-as="o">
+	    	       <t t-call="web.basic_layout">
+				   
+ <div class="page" style="background-image:url('/hr_payroll_seng/static/img/dec_trim.jpg'); background-size:250mm 380mm; width:250mm; height:380mm;"> 		
+	
+ <style>
+
+.main-data {
+width: 100%;
+position: absolute;
+top: 100px;
+}
+.trim1{
+position: absolute;
+left:313px;
+font-size: 150%;
+top: 120px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.trim2{
+position: absolute;
+left:356px;
+font-size: 150%;
+top: 120px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.trim3{
+position: absolute;
+left:393px;
+font-size: 150%;
+top: 118px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.trim4{
+position: absolute;
+left:434px;
+font-size: 150%;
+top: 118px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+
+
+
+
+.year{
+position: absolute;
+left:128px;
+font-size: 120%;
+top: 119px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+
+}
+.email{
+position: absolute;
+left: 100px;
+font-size: 90%;
+top: 289px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.netcnss{
+position: absolute;
+left: 294px;
+font-size: 90%;
+top: 329px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.raisonsociale{
+position: absolute;
+left: 300px;
+font-size: 120%;
+top: 247px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+
+.street{
+position: absolute;
+left: 250px;
+font-size: 120%;
+top: 310px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.street2{
+position: absolute;
+left: 540px;
+font-size: 120%;
+top: 350px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+.city{
+position: absolute;
+left: 530px;
+font-size: 120%;
+top: 450px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.matcnss{
+position: absolute;
+left:380px;
+font-size: 120%;
+top: 352px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+.effectif{
+position: absolute;
+left: 272px;
+font-size: 120%;
+top: 450px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.effectif2{
+position: absolute;
+left: 272px;
+font-size: 120%;
+top: 520px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.effectif3{
+position: absolute;
+left: 272px;
+font-size: 120%;
+top: 590px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.effectiftot{
+position: absolute;
+left: 272px;
+font-size: 120%;
+top: 660px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.totheures{
+position: absolute;
+left: 510px;
+font-size: 120%;
+top: 620px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+ .cnss_total_PF{
+position: absolute;
+left: 710px;
+font-size: 120%;
+top: 810px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+ .cnss_total_AT{
+position: absolute;
+left: 715px;
+font-size: 120%;
+top: 880px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+ .taux_AT{
+position: absolute;
+left: 610px;
+font-size: 110%;
+top: 880px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+ .cnss_total_AT_PF{
+position: absolute;
+left: 700px;
+font-size: 120%;
+top: 952px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+.brut_total_catA{
+position: absolute;
+left:505px;
+font-size: 105%;
+top: 480px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+
+.brutA{
+position: absolute;
+left:796px;
+font-size: 110%;
+top: 460px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+
+.brutB{
+position: absolute;
+left:796px;
+font-size: 110%;
+top: 530px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.brutC{
+position: absolute;
+left:796px;
+font-size: 110%;
+top: 590px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.brut{
+position: absolute;
+left:796px;
+font-size: 110%;
+top: 660px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.cnsstotal{
+position: absolute;
+left:950px;
+font-size: 100%;
+top: 400px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+.cnssp{
+position: absolute;
+left:954px;
+font-size: 95%;
+top: 423px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+.cnss{
+position: absolute;
+left:958px;
+font-size: 95%;
+top: 442px;
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.pdate{
+position: absolute;
+left:276px;
+font-size: 110%;
+top: 530px;
+
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+
+}
+
+.mode{
+position: absolute;
+left:320px;
+font-size: 110%;
+top: 1015px;
+
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.numero{
+position: absolute;
+left:760px;
+font-size: 110%;
+top: 530px;
+
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.datedoc{
+position: absolute;
+left:680px;
+font-size: 110%;
+top: 1100px;
+
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.faita{
+position: absolute;
+left:500px;
+font-size: 110%;
+top: 1100px;
+
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+}
+
+.matric{
+position: absolute;
+left:50px;
+font-size: 110%;
+top: 1040px;
+
+ font-family: Arial, Helvetica, sans-serif;
+ text-align: right;
+ vertical-align: bottom;
+}
+
+
+
+</style>
+
+	
+
+ <div class="main-data">
+
+
+
+<p  class="matcnss"> <span t-esc="o.company_id.org_ss"/></p>
+<p  class="raisonsociale"> <span t-esc="o.company_id.name"/></p>
+<p  class="street"> <span t-esc="o.company_id.street"/><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><span t-esc="o.company_id.street2"/><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]><span t-esc="o.company_id.city"/></p>
+
+
+
+
+<p  class="mode"> <span  t-esc="o.payment_mode"/></p> 
+<p  class="numero"> <span  t-esc="o.cheque_number" /></p> 
+<p  class="faita"> <span  t-esc="o.company_id.city" /></p> 
+<p  class="taux_AT"> <span  t-esc="('%.0f')% o.company_id.accid_trv" />%</p> 
+<p  class="datedoc"> <span  t-esc="o.date_document" t-options='{"widget": "date"}' /></p> 
+<p  class="effectif"> <span  t-esc="o.nemploye" /></p> 
+<p  class="effectif2"> <span  t-esc="o.nemploye2" /></p>
+ <p  class="effectif3"> <span  t-esc="o.nemploye3" /></p>
+  <p  class="effectiftot"> <span  t-esc="o.nemploye + o.nemploye2 + o.nemploye3" /></p>
+   <p  class="totheures"> <span  t-esc="o.totheures" /></p> 
+<p  class="brut"> <span  t-esc="('%.0f')% ((o.nemploye * o.company_id.plafond1)+o.brut_total_catB+o.brut_total_catC)" /></p> 
+<p  class="brutA"> <span  t-esc="('%.0f')% (o.nemploye * o.company_id.plafond1)" /></p>
+<p  class="brutB"> <span  t-esc="('%.0f')% o.brut_total_catB" /></p> 
+<p  class="brutC"> <span  t-esc="('%.0f')% o.brut_total_catC" /></p> 
+
+<p  class="brut_total_catA"> <span  t-esc="('%.0f')% o.brut_total_catA" /></p>
+<p  class="cnss_total_PF"> <span  t-esc="('%.0f')% o.cnss_total_PF" /></p> 
+<p  class="cnss_total_AT"> <span  t-esc="('%.0f')% o.cnss_total_AT" /></p> 
+<p  class="cnss_total_AT_PF"> <span  t-esc="('%.0f')% o.total_cnss" /></p>
+
+	<table  class="matric">
+
+</table>
+</div>	
+</div>	
+<p style="page-break-after:always;"/>
+<br/>
+
+ <div class="page" t-attf-style="background-image:url('/hr_payroll_seng/static/img/css_appel_mensuel2.jpg'); background-size:250mm 380mm; width:250mm; height:380mm;"> 		
+	
+
+
+</div>
+</t>
+</t>
+</t>
+	   
+	</template>
+</odoo>

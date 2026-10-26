@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            Catégories de règles salariales — Niger
+
+            TECH_NE   : Lignes techniques (non affichées sur le bulletin)
+            ALW_NI_NE : Indemnités non imposables NE (hors ITS et hors CNSS)
+        -->
+
+        <record id="TECH_NE" model="hr.salary.rule.category">
+            <field name="name">Technique NE</field>
+            <field name="code">TECH_NE</field>
+            <field name="country_id" ref="base.ne"/>
+        </record>
+
+        <record id="ALW_NI_NE" model="hr.salary.rule.category">
+            <field name="name">Indemnités NI NE</field>
+            <field name="code">ALW_NI_NE</field>
+            <field name="country_id" ref="base.ne"/>
+        </record>
+
+    </data>
+</odoo>

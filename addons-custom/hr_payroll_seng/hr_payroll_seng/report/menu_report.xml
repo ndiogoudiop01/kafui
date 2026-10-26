@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+	<record id="mode_portrait" model="report.paperformat">
+	 <field name="name">format A4 paysage</field>
+	<field name="default" eval="True"/>
+	<field name="format">A4</field>
+	<field name="orientation">Portrait</field>
+    <field name="margin_top">0</field>
+    <field name="margin_bottom">1</field>
+    <field name="margin_left">2</field>
+    <field name="margin_right">1</field>
+    <field name="header_spacing">0</field>	
+	<field name="header_line" eval="False"/>
+ <field name="dpi">100</field>
+
+  
+		</record>
+   
+      
+  	
+        <record id="action_report_etat_cnss" model="ir.actions.report">
+            <field name="name">Appel Mensuel de cotistation(RG) CSS</field>
+            <field name="model">hr.cnss</field>
+            <field name="report_type">qweb-html</field>
+            <field name="report_name">hr_payroll_seng.report_cnss</field>
+            <field name="report_file">hr_payroll_seng.report_cnss</field>
+			  <field name="paperformat_id" ref="hr_payroll_seng.mode_portrait" />
+        </record>		
+	 
+
+
+		
+
+
+	
+
+
+		
+
+    </data>
+
+</odoo>

@@ -1,0 +1,574 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            RÈGLES SALARIALES — Paie Burkina Faso
+            Source : BF_Fiche de paie.xlsx + Code du Travail BF + CGI BF
+
+            ── Convention om_hr_payroll ──
+            • localdict['result']      = montant Python de la règle
+            • localdict['result_rate'] = taux d'affichage (Taux/NB column)
+              IMPORTANT : tot_rule = result × result_qty × result_rate / 100
+              → si result_rate != 100, mettre dans result la BASE (pas le montant final)
+                pour que tot_rule soit correct.
+            • 'contract' = hr.version (wage, date_start, etc.)
+            • 'inputs.CODE' = BrowsableObject sur les entrées du bulletin.
+              Pattern sécurisé : _i = inputs.CODE ; val = _i.amount if _i else 0.0
+            • Règles précédemment calculées accessibles par leur code (localdict).
+            • categories.BASIC, categories.ALW, categories.DED, categories.COMP
+              sont des accumulateurs mis à jour après chaque règle.
+
+            ── Logique CNSS BF ──
+            Plafond mensuel : 66 667 FCFA (= 800 000 FCFA/an ÷ 12)
+            Taux salarié    : 5,5 % → cotisation max = 3 667 FCFA/mois
+            Taux patronal   : 21,5 % (retraite 16 % + PF+AT 5,5 %)
+
+            ── Logique IUTS BF ──
+            Barème annuel CGI BF (Article 77) :
+              0 – 415 000 FCFA        :  0 %
+              415 001 – 700 000 FCFA  : 12 %
+              700 001 – 1 400 000     : 20 %
+              1 400 001 – 1 900 000   : 27 %
+              1 900 001 – 2 650 000   : 33 %
+              2 650 001 – 3 300 000   : 38 %
+              > 3 300 000             : 40 %
+            Méthode : annualiser la base mensuelle (× 12), appliquer le barème,
+            diviser par 12. Pas de RCF implémenté (à ajouter selon les besoins).
+
+            ── Prime d'ancienneté BF ──
+            Convention Collective Interprofessionnelle BF : 1 % par année
+            d'ancienneté effective (de service continu), calculé automatiquement
+            depuis la date de début du contrat, plafonné à 25 %.
+            Source légale : CCIB BF — « 2 % par tranche biennale »
+            → appliqué comme 1 %/an (2 % / 2 ans).
+
+            Toutes les règles : company_id=False, country_id=BF.
+            Isolation : ir.rule dans gvs_hr_payroll_base cache ces règles aux autres pays.
+        -->
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 1 : ÉLÉMENTS DU BRUT IMPOSABLE (BASIC + ALW)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 10 : SB — Salaire de base contractuel -->
+        <record id="rule_bf_sb" model="hr.salary.rule">
+            <field name="name">Salaire de base</field>
+            <field name="code">SB</field>
+            <field name="sequence" eval="10"/>
+            <field name="category_id" ref="om_hr_payroll.BASIC"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">result = contract.wage * min(NB_JOURS, 30.0) / 30.0</field>
+            <field name="note">SB proraté = wage × NB_JOURS / 30. Si NB_JOURS = 30 (mois complet), SB = wage.
+Si NB_JOURS &lt; 30, prorata automatique (absence, entrée en cours de mois). Si NB_JOURS = 0
+(absence totale sur le mois), SB = 0 — ne PAS utiliser "NB_JOURS if NB_JOURS else 30.0" : 0 est une
+valeur valide (falsy en Python) qui serait sinon incorrectement remplacée par 30 (mois complet payé).
+NB_JOURS calculé en seq 5 depuis l'entrée du bulletin (défaut 30).</field>
+        </record>
+
+        <!-- seq 20 : PR_ANC — Prime d'ancienneté (auto, 1%/an depuis date_start) -->
+        <record id="rule_bf_pr_anc" model="hr.salary.rule">
+            <field name="name">Prime d'ancienneté</field>
+            <field name="code">PR_ANC</field>
+            <field name="sequence" eval="20"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">today = payslip.date_to
+start = contract.date_start
+if start and today:
+    years = today.year - start.year - ((today.month, today.day) &lt; (start.month, start.day))
+    years = max(years, 0)
+    # BF CCIB : 2 % acquis à partir de 2 ans d'ancienneté,
+    # puis +1 % par année supplémentaire (pas de tranche biennale).
+    # Plafond non officiel : 25 % — à mettre à jour dès confirmation légale.
+    if years &gt;= 2:
+        rate = min(years, 25)
+    else:
+        rate = 0
+else:
+    rate = 0
+result = round(contract.wage * rate / 100.0)</field>
+            <field name="note">CCIB BF : 2 % à partir de 2 ans d'ancienneté, +1 % par année supplémentaire.
+Formule : 0 % si &lt; 2 ans ; 2 % à 2 ans ; 3 % à 3 ans ; 4 % à 4 ans ; etc.
+Plafond provisoire 25 % (à confirmer avec la DGT BF).
+result = wage × rate / 100 calculé directement (évite aléas de result_rate).</field>
+        </record>
+
+        <!-- seq 30 : SURSAL — Sursalaire (complément au salaire catégoriel) -->
+        <record id="rule_bf_sursal" model="hr.salary.rule">
+            <field name="name">Sursalaire</field>
+            <field name="code">SURSAL</field>
+            <field name="sequence" eval="30"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">_i = inputs.SURSAL
+result = _i.amount if _i else 0.0</field>
+            <field name="note">Complément au salaire catégoriel minimum. Imposable IUTS et cotisable CNSS.</field>
+        </record>
+
+        <!-- seq 40 : HS10 — Heures diurnes semaine (+10 %) -->
+        <record id="rule_bf_hs20" model="hr.salary.rule">
+            <field name="name">HS diurnes — semaine (+10 %)</field>
+            <field name="code">HS10</field>
+            <field name="sequence" eval="40"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">_hi = inputs.HS10_H
+_h = _hi.amount if _hi else 0.0
+result = contract.wage / 173.33 * _h
+result_rate = 110.0</field>
+            <field name="note">HS jours ouvrables 41h-48h, majoration 10 % (Code du Travail BF).
+result = taux_horaire × heures (base), result_rate = 110 → tot_rule = base × 110/100.
+Imposable IUTS et CNSS. Affiché 110,00 % en Taux/NB.</field>
+        </record>
+
+        <!-- seq 42 : HS35 — Heures de nuit semaine (+35 %) -->
+        <record id="rule_bf_hs40" model="hr.salary.rule">
+            <field name="name">HS de nuit — semaine (+35 %)</field>
+            <field name="code">HS35</field>
+            <field name="sequence" eval="42"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">_hi = inputs.HS35_H
+_h = _hi.amount if _hi else 0.0
+result = contract.wage / 173.33 * _h
+result_rate = 135.0</field>
+            <field name="note">HS au-delà de 48h en semaine, majoration 35 % (Code du Travail BF).
+result = taux_horaire × heures (base), result_rate = 135 → tot_rule = base × 135/100.
+Imposable IUTS et CNSS. Affiché 135,00 % en Taux/NB.</field>
+        </record>
+
+        <!-- seq 44 : HS50 — Heures dimanche diurnes (+50 %) -->
+        <record id="rule_bf_hs50" model="hr.salary.rule">
+            <field name="name">HS dimanche — diurnes (+50 %)</field>
+            <field name="code">HS50</field>
+            <field name="sequence" eval="44"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">_hi = inputs.HS50_H
+_h = _hi.amount if _hi else 0.0
+result = contract.wage / 173.33 * _h
+result_rate = 150.0</field>
+            <field name="note">HS samedi après-midi, majoration 50 % (Code du Travail BF).
+result = taux_horaire × heures (base), result_rate = 150 → tot_rule = base × 150/100.
+Imposable IUTS et CNSS. Affiché 150,00 % en Taux/NB.</field>
+        </record>
+
+        <!-- seq 46 : HS75 — Heures dimanche nuit (+75 %) -->
+        <record id="rule_bf_hs75" model="hr.salary.rule">
+            <field name="name">HS dimanche — nuit (+75 %)</field>
+            <field name="code">HS75</field>
+            <field name="sequence" eval="46"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">_hi = inputs.HS75_H
+_h = _hi.amount if _hi else 0.0
+result = contract.wage / 173.33 * _h
+result_rate = 175.0</field>
+            <field name="note">HS dimanche, majoration 75 % (Code du Travail BF).
+result = taux_horaire × heures (base), result_rate = 175 → tot_rule = base × 175/100.
+Imposable IUTS et CNSS. Affiché 175,00 % en Taux/NB.</field>
+        </record>
+
+        <!-- seq 48 : HS100 — Heures jours fériés (+100 %) -->
+        <record id="rule_bf_hs100" model="hr.salary.rule">
+            <field name="name">HS jours fériés (+100 %)</field>
+            <field name="code">HS100</field>
+            <field name="sequence" eval="48"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">_hi = inputs.HS100_H
+_h = _hi.amount if _hi else 0.0
+result = contract.wage / 173.33 * _h
+result_rate = 200.0</field>
+            <field name="note">HS jours fériés, majoration 100 % (Code du Travail BF).
+result = taux_horaire × heures (base), result_rate = 200 → tot_rule = base × 200/100.
+Imposable IUTS et CNSS. Affiché 200,00 % en Taux/NB.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 2 : INDEMNITÉS IMPOSABLES (ALW) + NON IMPOSABLES (ALW_NI_BF)
+             IND_LOG et IND_TRSP : imposables IUTS et CNSS (catégorie ALW)
+             IND_FONCT : exonérée IUTS (catégorie ALW_NI_BF)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 60 : IND_LOG — Indemnité de logement (imposable IUTS + CNSS) -->
+        <record id="rule_bf_ind_log" model="hr.salary.rule">
+            <field name="name">Indemnité de logement</field>
+            <field name="code">IND_LOG</field>
+            <field name="sequence" eval="60"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="amount_python_compute">_i = inputs.IND_LOG
+result = _i.amount if _i else 0.0</field>
+            <field name="note">Imposable IUTS et CNSS. Comprise dans BRUT_IMP (catégorie ALW).
+is_prorata=False : montant forfaitaire mensuel, pas proratisé par les jours WORK100.</field>
+        </record>
+
+        <!-- seq 70 : IND_TRSP — Indemnité de transport (imposable IUTS + CNSS) -->
+        <record id="rule_bf_ind_trsp" model="hr.salary.rule">
+            <field name="name">Indemnité de transport</field>
+            <field name="code">IND_TRSP</field>
+            <field name="sequence" eval="70"/>
+            <field name="category_id" ref="om_hr_payroll.ALW"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="amount_python_compute">_i = inputs.IND_TRSP
+result = _i.amount if _i else 0.0</field>
+            <field name="note">Imposable IUTS et CNSS. Comprise dans BRUT_IMP (catégorie ALW).
+is_prorata=False : montant forfaitaire mensuel, pas proratisé par les jours WORK100.</field>
+        </record>
+
+        <!-- seq 80 : IND_FONCT — Indemnité de fonction (exonérée IUTS) -->
+        <record id="rule_bf_ind_fonct" model="hr.salary.rule">
+            <field name="name">Indemnité de fonction</field>
+            <field name="code">IND_FONCT</field>
+            <field name="sequence" eval="80"/>
+            <field name="category_id" ref="gvs_hr_payroll_bf.ALW_NI_BF"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="is_prorata" eval="False"/>
+            <field name="amount_python_compute">_i = inputs.IND_FONCT
+result = _i.amount if _i else 0.0</field>
+            <field name="note">Exonérée IUTS (CGI BF). Entre dans le brut total mais PAS dans la base IUTS.
+is_prorata=False : montant forfaitaire mensuel, pas proratisé par les jours WORK100.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 3 : TOTAUX INTERMÉDIAIRES
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 5 : NB_JOURS — Nombre de jours travaillés (TECH, affiché sur bulletin) -->
+        <record id="rule_bf_nb_jours" model="hr.salary.rule">
+            <field name="name">Jours travaillés</field>
+            <field name="code">NB_JOURS</field>
+            <field name="sequence" eval="5"/>
+            <field name="category_id" ref="gvs_hr_payroll_bf.TECH_BF"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">_i = inputs.NB_JOURS
+if _i and _i.amount:
+    result = _i.amount
+else:
+    _wd = worked_days.WORK100
+    result = _wd.number_of_days if _wd else 30.0</field>
+            <field name="note">Priorité : 1) Other Input NB_JOURS (saisie manuelle exceptionnelle) si renseigné et non nul ;
+2) sinon, nombre de jours de l'onglet "Jours travaillés et entrées" (ligne WORK100). WORK100 est
+   calculé par get_worked_day_lines() sur une base calendaire de 30 jours (moins congés éventuels),
+   donc directement comparable à 30 ;
+3) sinon, 30 jours (mois complet, convention forfaitaire — harmonisé avec CI et TG).
+Calculé en premier (seq 5) pour être disponible dès le début.</field>
+        </record>
+
+        <!-- seq 100 : BRUT_IMP — Brut imposable (BASIC + ALW) — TECH, caché -->
+        <record id="rule_bf_brut_imp" model="hr.salary.rule">
+            <field name="name">Brut imposable BF</field>
+            <field name="code">BRUT_IMP</field>
+            <field name="sequence" eval="100"/>
+            <field name="category_id" ref="gvs_hr_payroll_bf.TECH_BF"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">result = categories.BASIC + categories.ALW</field>
+            <field name="note">Gains imposables IUTS = BASIC (SB) + ALW (PR_ANC, SURSAL, HS10/35/50/75/100, IND_LOG, IND_TRSP).
+IND_LOG et IND_TRSP sont désormais imposables (catégorie ALW).
+Seul IND_FONCT reste exonéré (ALW_NI_BF). Sert de base à l'abattement 20 % et à BASE_IUTS.</field>
+        </record>
+
+        <!-- seq 110 : BRUT — Rémunération brute totale (GROSS) -->
+        <record id="rule_bf_brut" model="hr.salary.rule">
+            <field name="name">Rémunération brute totale</field>
+            <field name="code">BRUT</field>
+            <field name="sequence" eval="110"/>
+            <field name="category_id" ref="om_hr_payroll.GROSS"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">result = BRUT_IMP + IND_FONCT</field>
+            <field name="note">Rémunération brute totale = BRUT_IMP (imposable) + IND_FONCT (exo IUTS).
+IND_LOG et IND_TRSP maintenant en ALW → déjà dans BRUT_IMP.
+Base de calcul du Net Fiscal (avant CNSS et IUTS).</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 4 : BASES DE CALCUL (TECH_BF, cachés)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 120 : CNSS_BASE — Base CNSS plafonnée 66 667 FCFA/mois -->
+        <record id="rule_bf_cnss_base" model="hr.salary.rule">
+            <field name="name">Base CNSS plafonnée BF</field>
+            <field name="code">CNSS_BASE</field>
+            <field name="sequence" eval="120"/>
+            <field name="category_id" ref="gvs_hr_payroll_bf.TECH_BF"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">result = min(BRUT, 800000.0)</field>
+            <field name="note">Plafond mensuel CNSS BF = 800 000 FCFA/mois.
+La base inclut le BRUT total (imposable + exonérés) plafonnée.
+Utilisé par CNSS_SAL (5,5 %) et CNSS_PAT (21,5 %).</field>
+        </record>
+
+        <!-- seq 130 : BASE_IUTS — Base imposable IUTS — TECH, caché -->
+        <record id="rule_bf_base_iuts" model="hr.salary.rule">
+            <field name="name">Base imposable IUTS BF</field>
+            <field name="code">BASE_IUTS</field>
+            <field name="sequence" eval="130"/>
+            <field name="category_id" ref="gvs_hr_payroll_bf.TECH_BF"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">cnss_amount = CNSS_BASE * 0.055
+abattement = BRUT_IMP * 0.20
+result = max(0.0, BRUT_IMP - cnss_amount - abattement)</field>
+            <field name="note">BASE_IUTS = BRUT_IMP – CNSS_sal – Abattement 20 %
+= BRUT_IMP × (1 – 0,20) – CNSS_BASE × 5,5 %
+= 0,80 × BRUT_IMP – CNSS_BASE × 0,055.
+Source : colonne "Base Imp" de la fiche de paie BF (Sal Brut – Abatt – Exo).</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 5 : RETENUES SALARIALES (DED)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 200 : CNSS_SAL — CNSS salarié 5,5 % plafonné -->
+        <record id="rule_bf_cnss_sal" model="hr.salary.rule">
+            <field name="name">CNSS salariale (5,5 %)</field>
+            <field name="code">CNSS_SAL</field>
+            <field name="sequence" eval="200"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">result = -CNSS_BASE
+result_rate = 5.5</field>
+            <field name="note">result = -CNSS_BASE (base plafonnée, négative car déduction).
+result_rate = 5,5 → tot_rule = -CNSS_BASE × 5,5/100.
+Taux affiché 5,50 % en Taux/NB. Plafond 800 000 FCFA/an.</field>
+        </record>
+
+        <!-- seq 210 : IUTS — Impôt Unique sur les Traitements et Salaires -->
+        <record id="rule_bf_iuts" model="hr.salary.rule">
+            <field name="name">IUTS (Impôt Unique sur les Traitements et Salaires)</field>
+            <field name="code">IUTS</field>
+            <field name="sequence" eval="210"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">b = BASE_IUTS * 12.0
+# Barème IUTS BF (CGI — vérifier l'arrêté en vigueur)
+# Tranches annuelles (net imposable après abattement 20% et CNSS) :
+#   0 – 300 000 : 0 %
+#   300 001 – 600 000 : 13 %
+#   600 001 – 1 200 000 : 22 %
+#   1 200 001 – 1 800 000 : 30 %
+#   1 800 001 – 2 400 000 : 37 %
+#   > 2 400 000 : 43 %
+iuts_an = (
+    max(0.0, min(b, 600000.0) - 300000.0) * 0.13
+    + max(0.0, min(b, 1200000.0) - 600000.0) * 0.22
+    + max(0.0, min(b, 1800000.0) - 1200000.0) * 0.30
+    + max(0.0, min(b, 2400000.0) - 1800000.0) * 0.37
+    + max(0.0, b - 2400000.0) * 0.43
+)
+result = -(iuts_an / 12.0)</field>
+            <field name="note">Barème IUTS BF (CGI) — tranches annuelles sur base imposable nette.
+Méthode : annualiser BASE_IUTS mensuelle (× 12), appliquer le barème, diviser par 12.
+Tranches : 0 % [0-300k] ; 13 % [300k-600k] ; 22 % [600k-1,2M] ;
+30 % [1,2M-1,8M] ; 37 % [1,8M-2,4M] ; 43 % [>2,4M].
+⚠ Vérifier le barème en vigueur auprès de la DGI BF — peut varier selon l'arrêté fiscal.
+Pas de RCF (réduction charges familiales) — à implémenter si nécessaire.</field>
+        </record>
+
+        <!-- seq 220 : FSP — Fonds Spécial de Prévoyance (1 % du Net Fiscal) -->
+        <record id="rule_bf_fsp" model="hr.salary.rule">
+            <field name="name">FSP — Fonds Spécial de Prévoyance (1 %)</field>
+            <field name="code">FSP</field>
+            <field name="sequence" eval="220"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">net_fiscal = BRUT + CNSS_SAL + IUTS
+result = -max(0.0, net_fiscal)
+result_rate = 1.0</field>
+            <field name="note">FSP = 1 % du Net Fiscal = 1 % × (Brut − CNSS_sal − IUTS).
+CNSS_SAL et IUTS sont négatifs dans localdict → BRUT + CNSS_SAL + IUTS = Net Fiscal.
+result = -Net_Fiscal (base, négatif car déduction) ; result_rate = 1.0
+→ tot_rule = -Net_Fiscal × 1.0/100 = -1 % × Net_Fiscal. ✓
+NE PAS multiplier result par 0.01 (result_rate gère déjà la division par 100).
+Source : colonne "Retenue 1% FSP" de la fiche de paie BF.</field>
+        </record>
+
+        <!-- seq 230 : ACOMPTE — Avance sur salaire -->
+        <record id="rule_bf_acompte" model="hr.salary.rule">
+            <field name="name">Acompte</field>
+            <field name="code">ACOMPTE</field>
+            <field name="sequence" eval="230"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">_i = inputs.ACOMPTE
+result = -(abs(_i.amount) if _i else 0.0)</field>
+            <field name="note">Avance sur salaire déjà versée. Résultat négatif (déduction du net). Colonne "Avces sur salaire" de la fiche de paie BF.</field>
+        </record>
+
+        <!-- seq 240 : DETTE — Remboursement de dettes / prêt -->
+        <record id="rule_bf_dette" model="hr.salary.rule">
+            <field name="name">Remboursement de dettes</field>
+            <field name="code">DETTE</field>
+            <field name="sequence" eval="240"/>
+            <field name="category_id" ref="om_hr_payroll.DED"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">_i = inputs.DETTE
+result = -(abs(_i.amount) if _i else 0.0)</field>
+            <field name="note">Retenue prêt/dette. abs() garantit le signe négatif. Résultat négatif (déduction).</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 6 : NET À PAYER
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 340 : NET — Net à payer (après charges patronales) -->
+        <record id="rule_bf_net" model="hr.salary.rule">
+            <field name="name">Net à payer</field>
+            <field name="code">NET</field>
+            <field name="sequence" eval="340"/>
+            <field name="category_id" ref="om_hr_payroll.NET"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">result = BRUT + categories.DED</field>
+            <field name="note">Net = BRUT (total gains) + categories.DED (retenues négatives : CNSS_SAL + IUTS + FSP + ACOMPTE + DETTE).
+= Net Fiscal - FSP - Acompte - Dettes.
+Source : colonne "Net à payer" de la fiche de paie BF.</field>
+        </record>
+
+        <!-- ══════════════════════════════════════════════
+             BLOC 7 : CHARGES PATRONALES (COMP)
+        ══════════════════════════════════════════════ -->
+
+        <!-- seq 310 : CNSS_PAT_RET — CNSS patronale retraite 16 % -->
+        <record id="rule_bf_cnss_pat_ret" model="hr.salary.rule">
+            <field name="name">CNSS patronale — retraite (16 %)</field>
+            <field name="code">CNSS_PAT_RET</field>
+            <field name="sequence" eval="310"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">result = CNSS_BASE
+result_rate = 16.0</field>
+            <field name="note">CNSS patronale retraite : 16 % × CNSS_BASE plafonnée.
+tot_rule = CNSS_BASE × 16/100. Taux affiché 16,00 %.
+Source : colonne "CNSS 0,16" de la fiche de paie BF.</field>
+        </record>
+
+        <!-- seq 320 : CNSS_PAT_PF — CNSS patronale PF+AT 5,5 % -->
+        <record id="rule_bf_cnss_pat_pf" model="hr.salary.rule">
+            <field name="name">CNSS patronale — PF+AT (5,5 %)</field>
+            <field name="code">CNSS_PAT_PF</field>
+            <field name="sequence" eval="320"/>
+            <field name="category_id" ref="om_hr_payroll.COMP"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="True"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">result = CNSS_BASE
+result_rate = 5.5</field>
+            <field name="note">Prestations Familiales + Accidents du Travail : 5,5 % × CNSS_BASE plafonnée.
+Total CNSS patronal = 16 % + 5,5 % = 21,5 %.
+Source : col. "CNSS 0,215" (21,5 %) moins la part retraite (16 %) = 5,5 %.</field>
+        </record>
+
+        <!-- seq 330 : TOT_PAT — Total charges patronales (TECH, caché) -->
+        <record id="rule_bf_tot_pat" model="hr.salary.rule">
+            <field name="name">Total charges patronales BF</field>
+            <field name="code">TOT_PAT</field>
+            <field name="sequence" eval="330"/>
+            <field name="category_id" ref="gvs_hr_payroll_bf.TECH_BF"/>
+            <field name="condition_select">none</field>
+            <field name="amount_select">code</field>
+            <field name="appears_on_payslip" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="amount_python_compute">result = categories.COMP</field>
+            <field name="note">Total = CNSS_PAT_RET + CNSS_PAT_PF. Masqué du bulletin. Contrôle interne.</field>
+        </record>
+
+    </data>
+</odoo>

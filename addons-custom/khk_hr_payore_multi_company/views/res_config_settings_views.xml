@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Add payroll template selector inside the payroll settings app block -->
+    <record id="res_config_settings_view_form_inherit_khk_payor" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.khk.multi</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="47"/>
+        <field name="inherit_id" ref="khk_hr_payor.res_config_settings_view_form_inherit_"/>
+        <field name="arch" type="xml">
+            <!-- Add after the "Paie sénégalaise" block's last setting -->
+            <xpath expr="//setting[@id='nbj_travail_setting']" position="after">
+                <setting
+                    string="Modèle de règles salariales"
+                    id="payroll_template_setting"
+                    help="Générer les règles salariales pour cette société à partir du modèle"
+                    invisible="company_id == 1">
+                    <field name="payroll_chart_template"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>

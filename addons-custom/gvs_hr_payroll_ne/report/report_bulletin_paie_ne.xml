@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="report_bulletin_paie_ne_document">
+        <t t-call="web.external_layout">
+            <t t-foreach="docs" t-as="slip">
+                <div class="page" style="font-family: Arial, sans-serif; font-size: 11px; color: #000;">
+
+                    <!-- En-tête entreprise -->
+                    <table width="100%" style="margin-bottom: 8px;">
+                        <tr>
+                            <td width="60%">
+                                <strong style="font-size:13px;">
+                                    <t t-esc="slip.company_id.name"/>
+                                </strong><br/>
+                                <t t-esc="slip.company_id.street or ''"/>
+                                <t t-if="slip.company_id.city">
+                                    — <t t-esc="slip.company_id.city"/>
+                                </t><br/>
+                                <t t-if="slip.company_id.phone">
+                                    Tél : <t t-esc="slip.company_id.phone"/>
+                                </t>
+                            </td>
+                            <td width="40%" style="text-align:right;">
+                                <strong style="font-size:14px; color:#8B0000;">BULLETIN DE SALAIRE</strong><br/>
+                                Période : <t t-esc="slip.date_from"/> au <t t-esc="slip.date_to"/>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Informations employé -->
+                    <table width="100%" style="border:1px solid #8B0000; padding:4px; margin-bottom:8px;">
+                        <tr>
+                            <td width="50%">
+                                <strong>Nom et Prénom :</strong>
+                                <t t-esc="slip.employee_id.name"/><br/>
+                                <strong>Emploi :</strong>
+                                <t t-esc="slip.employee_id.job_id.name or ''"/><br/>
+                                <strong>Matricule :</strong>
+                                <t t-esc="slip.employee_id.barcode or ''"/>
+                            </td>
+                            <td width="50%">
+                                <strong>N° CNSS :</strong>
+                                <t t-esc="slip.employee_id.ssnid or ''"/><br/>
+                                <strong>Date d'embauche :</strong>
+                                <t t-esc="slip.employee_id.contract_id.date_start or ''"/><br/>
+                                <strong>Personnes à charge :</strong>
+                                <t t-esc="slip.employee_id.nb_charge or 0"/>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Tableau des rubriques -->
+                    <table width="100%" style="border-collapse:collapse; margin-bottom:6px;">
+                        <thead>
+                            <tr style="background-color:#8B0000; color:#fff;">
+                                <th style="padding:4px; text-align:left; width:50%;">Rubriques</th>
+                                <th style="padding:4px; text-align:right; width:20%;">Base</th>
+                                <th style="padding:4px; text-align:right; width:10%;">Taux</th>
+                                <th style="padding:4px; text-align:right; width:20%;">Montant (FCFA)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Éléments du brut -->
+                            <t t-foreach="slip.line_ids" t-as="line">
+                                <t t-if="line.appears_on_payslip and line.category_id.code in ['BASIC', 'ALW', 'ALW_NI_NE'] and line.total != 0">
+                                    <tr style="border-bottom:1px solid #ddd;">
+                                        <td style="padding:3px 4px;">
+                                            <t t-esc="line.name"/>
+                                        </td>
+                                        <td style="padding:3px 4px; text-align:right;">
+                                            <t t-if="line.amount_select == 'code' and line.code not in ['SB']">
+                                                &#160;
+                                            </t>
+                                            <t t-else="">
+                                                <t t-esc="'{:,.0f}'.format(line.slip_id.employee_id.contract_id.wage).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                        <td style="padding:3px 4px; text-align:right;">
+                                            &#160;
+                                        </td>
+                                        <td style="padding:3px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(line.total).replace(',', ' ')"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </t>
+
+                            <!-- Ligne SALAIRE BRUT -->
+                            <t t-set="brut_line" t-value="slip.line_ids.filtered(lambda l: l.code == 'BRUT')"/>
+                            <tr style="background-color:#f5e6e6; font-weight:bold; border-top:2px solid #8B0000;">
+                                <td style="padding:4px;">SALAIRE BRUT</td>
+                                <td style="padding:4px; text-align:right;">&#160;</td>
+                                <td style="padding:4px; text-align:right;">&#160;</td>
+                                <td style="padding:4px; text-align:right;">
+                                    <t t-if="brut_line">
+                                        <t t-esc="'{:,.0f}'.format(brut_line[0].total).replace(',', ' ')"/>
+                                    </t>
+                                </td>
+                            </tr>
+
+                            <!-- Abattements (lignes techniques visibles) -->
+                            <t t-foreach="slip.line_ids" t-as="line">
+                                <t t-if="line.appears_on_payslip and line.code in ['ABAT_PROF', 'ABAT_EXPAT', 'BASE_ITS']">
+                                    <tr style="border-bottom:1px solid #eee; color:#555;">
+                                        <td style="padding:3px 4px; padding-left:16px; font-style:italic;">
+                                            <t t-esc="line.name"/>
+                                        </td>
+                                        <td style="padding:3px 4px; text-align:right;">&#160;</td>
+                                        <td style="padding:3px 4px; text-align:right;">&#160;</td>
+                                        <td style="padding:3px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(line.total).replace(',', ' ')"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </t>
+
+                            <tr><td colspan="4" style="height:6px;"></td></tr>
+
+                            <!-- En-tête retenues -->
+                            <tr style="background-color:#8B0000; color:#fff;">
+                                <th style="padding:4px; text-align:left;">Retenues salariales</th>
+                                <th style="padding:4px; text-align:right;">Base</th>
+                                <th style="padding:4px; text-align:right;">Taux</th>
+                                <th style="padding:4px; text-align:right;">Montant (FCFA)</th>
+                            </tr>
+
+                            <!-- Déductions salariales -->
+                            <t t-foreach="slip.line_ids" t-as="line">
+                                <t t-if="line.appears_on_payslip and line.category_id.code == 'DED' and line.total != 0 and line.code != 'FSSP'">
+                                    <tr style="border-bottom:1px solid #ddd;">
+                                        <td style="padding:3px 4px;"><t t-esc="line.name"/></td>
+                                        <td style="padding:3px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(abs(line.amount)).replace(',', ' ')"/>
+                                        </td>
+                                        <td style="padding:3px 4px; text-align:right;">
+                                            <t t-if="line.rate != 100">
+                                                <t t-esc="line.rate"/> %
+                                            </t>
+                                        </td>
+                                        <td style="padding:3px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(abs(line.total)).replace(',', ' ')"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </t>
+
+                            <!-- NET -->
+                            <t t-set="net_line" t-value="slip.line_ids.filtered(lambda l: l.code == 'NET')"/>
+                            <tr style="background-color:#f5e6e6; font-weight:bold; font-size:12px; border-top:2px solid #8B0000;">
+                                <td style="padding:5px;">SALAIRE NET</td>
+                                <td style="padding:5px; text-align:right;">&#160;</td>
+                                <td style="padding:5px; text-align:right;">&#160;</td>
+                                <td style="padding:5px; text-align:right;">
+                                    <t t-if="net_line">
+                                        <t t-esc="'{:,.0f}'.format(net_line[0].total).replace(',', ' ')"/>
+                                    </t>
+                                </td>
+                            </tr>
+
+                            <!-- FSSP -->
+                            <t t-set="fssp_line" t-value="slip.line_ids.filtered(lambda l: l.code == 'FSSP')"/>
+                            <t t-if="fssp_line and fssp_line[0].total != 0">
+                                <tr style="border-bottom:1px solid #ddd; color:#555;">
+                                    <td style="padding:3px 4px; padding-left:16px; font-style:italic;">
+                                        <t t-esc="fssp_line[0].name"/> (1 %)
+                                    </td>
+                                    <td style="padding:3px 4px; text-align:right;">&#160;</td>
+                                    <td style="padding:3px 4px; text-align:right;">1 %</td>
+                                    <td style="padding:3px 4px; text-align:right;">
+                                        <t t-esc="'{:,.0f}'.format(abs(fssp_line[0].total)).replace(',', ' ')"/>
+                                    </td>
+                                </tr>
+                            </t>
+
+                        </tbody>
+                    </table>
+
+                    <!-- Charges patronales -->
+                    <table width="100%" style="border-collapse:collapse; margin-top:8px;">
+                        <thead>
+                            <tr style="background-color:#555; color:#fff;">
+                                <th style="padding:4px; text-align:left;" colspan="4">Charges patronales</th>
+                            </tr>
+                            <tr style="background-color:#888; color:#fff;">
+                                <th style="padding:3px 4px; text-align:left; width:50%;">Rubrique</th>
+                                <th style="padding:3px 4px; text-align:right; width:20%;">Base</th>
+                                <th style="padding:3px 4px; text-align:right; width:10%;">Taux</th>
+                                <th style="padding:3px 4px; text-align:right; width:20%;">Montant (FCFA)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="slip.line_ids" t-as="line">
+                                <t t-if="line.appears_on_payslip and line.category_id.code == 'COMP' and line.code != 'TOT_PAT' and line.total != 0">
+                                    <tr style="border-bottom:1px solid #ddd;">
+                                        <td style="padding:3px 4px;"><t t-esc="line.name"/></td>
+                                        <td style="padding:3px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(abs(line.amount)).replace(',', ' ')"/>
+                                        </td>
+                                        <td style="padding:3px 4px; text-align:right;">
+                                            <t t-if="line.rate != 100">
+                                                <t t-esc="line.rate"/> %
+                                            </t>
+                                        </td>
+                                        <td style="padding:3px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(line.total).replace(',', ' ')"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </t>
+                            <t t-set="totpat" t-value="slip.line_ids.filtered(lambda l: l.code == 'TOT_PAT')"/>
+                            <t t-if="totpat">
+                                <tr style="font-weight:bold; background-color:#eee; border-top:2px solid #555;">
+                                    <td style="padding:4px;">Total charges patronales</td>
+                                    <td style="padding:4px; text-align:right;">&#160;</td>
+                                    <td style="padding:4px; text-align:right;">&#160;</td>
+                                    <td style="padding:4px; text-align:right;">
+                                        <t t-esc="'{:,.0f}'.format(totpat[0].total).replace(',', ' ')"/>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <!-- Pied de page -->
+                    <table width="100%" style="margin-top:20px;">
+                        <tr>
+                            <td width="50%" style="text-align:center;">
+                                <br/><br/>
+                                <strong>Signature de l'employé</strong>
+                            </td>
+                            <td width="50%" style="text-align:center;">
+                                <br/><br/>
+                                <strong>Signature et cachet de l'employeur</strong>
+                            </td>
+                        </tr>
+                    </table>
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_bulletin_paie_ne" model="ir.actions.report">
+        <field name="name">Bulletin de paie Niger</field>
+        <field name="model">hr.payslip</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">gvs_hr_payroll_ne.report_bulletin_paie_ne_document</field>
+        <field name="report_file">gvs_hr_payroll_ne.report_bulletin_paie_ne_document</field>
+        <field name="domain">[('company_id.country_id.code', '=', 'NE')]</field>
+        <field name="binding_model_id" ref="om_hr_payroll.model_hr_payslip"/>
+        <field name="binding_type">report</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <data noupdate="1">
+
+		    <record id="seq_cnss" model="ir.sequence">
+            <field name="name">Declaration</field>
+            <field name="code">cnss</field>
+            <field name="prefix">Déclaration CSS N°</field>
+            <field name="padding">4</field>
+        </record>
+
+
+			<record id="seq_paie" model="ir.sequence">
+            <field name="name">paie_data</field>
+            <field name="code">paie</field>
+            <field name="prefix">Tableau de la paie N°</field>
+            <field name="padding">4</field>
+        </record> 
+
+
+
+    </data>
+</odoo>

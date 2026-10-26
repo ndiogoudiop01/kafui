@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Extension fiche employé Togo.
+
+        1. Ajoute le champ technique is_tg_payroll (invisible) pour la
+           visibilité conditionnelle du groupe Paie Togo dans Paramètres RH.
+
+        2. Affiche nb_charge dans l'onglet « Paramètres RH » (readonly)
+           pour une lecture rapide sans ouvrir l'onglet Famille.
+
+        L'onglet Famille est géré universellement par khk_hr_payor
+        (page name="famille") et est visible pour tous les employés depuis
+        la version universelle. La page famille_tg a été supprimée pour
+        éviter un doublon.
+
+        Architecture :
+          - nb_charge est calculé dans gvs_hr_payroll_base depuis
+            relation.famille (conjoint non salarié +1, enfant <18ans +1,
+            plafonné à 6).
+          - is_tg_payroll conditionne la visibilité du groupe Paie Togo.
+    -->
+
+    <record id="view_hr_employee_form_tg_inherit" model="ir.ui.view">
+        <field name="name">hr.employee.form.tg.inherit</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+
+            <!-- ── Champ technique pour la visibilité conditionnelle ───────── -->
+            <xpath expr="//field[@name='marital']" position="after">
+                <field name="is_tg_payroll" invisible="1"/>
+            </xpath>
+
+            <!-- ── nb_charge en lecture rapide dans Paramètres RH ────────── -->
+            <xpath expr="//page[@name='payroll_information']//group[@name='payroll_group']"
+                   position="inside">
+                <group string="Paie Togo"
+                       col="2"
+                       name="tg_payroll_group"
+                       invisible="not is_tg_payroll">
+                    <field name="nb_charge"
+                           readonly="1"
+                           string="Personnes à charge (IRPP Togo)"
+                           help="Calculé depuis l'onglet Famille :&#10;• Conjoint non salarié → +1&#10;• Enfant &lt; 18 ans → +1&#10;Plafonné à 6. Utilisé pour l'abattement IRPP : 10 000 FCFA/mois par personne."/>
+                </group>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="view_hr_cnss_tree" model="ir.ui.view">
+            <field name="name">hr.cnss.tree.view</field>
+            <field name="model">hr.cnss</field>
+            <field name="arch" type="xml">
+                <tree name="CNSS">
+				 <field name="name"/>
+                    <field name="company_id"/>
+                   
+                    <field name="paiem_date"/>
+                    <field name="state"/>
+                    <field name="total_cnss"/>
+				
+                </tree>
+            </field>
+        </record>
+
+        <record id="hr_cnss_form_view" model="ir.ui.view">
+            <field name="name">hr.cnss.form.view</field>
+            <field name="model">hr.cnss</field>
+            <field name="arch" type="xml">
+                <form name="CNSS">
+                    <header>
+                        <button string="Générer la déclaration" name="cnss_generate" type="object" invisible = "state != 'draft'" class="oe_highlight"/>
+					
+                         <button name="print_mensuelle_tab" type="object" string="Imprimer le tableau de déclaration" class="oe_highlight"/>
+                        
+
+						<button string="Confirmer" name="cnss_confirm" type="object" invisible = "state != 'draft'" class="oe_highlight"/>
+                        <button string="Archiver" name="cnss_payed" type="object" invisible = "state  not in ('draft','waiting')" class="oe_highlight"/>
+                        
+						
+						
+						
+						<field name="state" widget="statusbar"/>
+                    </header>
+                    <sheet>
+                        <h2>
+                            <field name="name" class="oe_inline" readonly="1"/>
+							 <field name="regime" invisible="1"/>
+							<field name="company_id" groups="base.group_multi_company" invisible="1"/>
+                        </h2>
+                     
+<CENTER>
+                            <table class="table"  style="width:65%;" >
+	
+		
+	<TR><TH colspan="4" bgcolor="#e9ecef" >Année</TH><TD colspan="4" bgcolor="#e9ecef9e"><field name="year"/></TD><TD colspan="4"></TD><TH colspan="4" bgcolor="#e9ecef" >Total cotisations à payer</TH><TD colspan="4" bgcolor="#e9ecef9e"><field name="total_cnss"/></TD><TD colspan="4"></TD></TR>				
+	<TR><TH colspan="4" bgcolor="#e9ecef" >Période/régime</TH><TD colspan="4" bgcolor="#e9ecef9e"><field name="regime"/></TD><TD colspan="4"></TD>
+					
+	<TH invisible ="regime != 'MENS'" colspan="4" bgcolor="#e9ecef" >Mois</TH><TD invisible ="regime != 'MENS'" colspan="4" bgcolor="#e9ecef"><field name="month"/></TD><TD invisible ="regime != 'MENS'" colspan="4"></TD>		
+	<TH invisible ="regime != 'TRIM'" colspan="4" bgcolor="#e9ecef" >Trimestre</TH><TD invisible ="regime != 'TRIM'" colspan="4" bgcolor="#e9ecef"><field name="trimestre"/></TD><TD invisible ="regime != 'TRIM'" colspan="4"></TD>			
+	<TH invisible ="regime != 'YEAR'" colspan="4" bgcolor="#e9ecef" >Année</TH><TD invisible ="regime != 'YEAR'" colspan="4" bgcolor="#e9ecef"><field name="year"/></TD><TD invisible ="regime != 'YEAR'" colspan="4"></TD>			
+</TR>
+	
+	<TR><TH colspan="4" bgcolor="#e9ecef">Date de début</TH><TD colspan="4" bgcolor="#e9ecef9e"><field name="date_from"/></TD><TD colspan="4"></TD><TH colspan="4" bgcolor="#e9ecef" >Date de fin</TH><TD colspan="4" bgcolor="#e9ecef9e"><field name="date_to"/></TD></TR>
+	<TR><TH colspan="4" bgcolor="#e9ecef">Date du document</TH><TD colspan="4" bgcolor="#e9ecef9e"><field name="date_document"/></TD><TD colspan="4"></TD><TH colspan="4" bgcolor="#e9ecef" >Mode de paiement</TH><TD colspan="4" bgcolor="#e9ecef9e"><field name="payment_mode"/></TD></TR>
+
+	<!-- <TR><TH colspan="8" bgcolor="#e4ec94" ></TH></TR>	 -->
+	<!-- <TR><TH colspan="4" >Nombre d'employés ayant salaire sup. à 63000 </TH><TD colspan="4"><field name="nemploye"/></TD></TR> -->
+	<!-- <TR><TH colspan="4" >Nombre d'employés ayant salaire inf. à 63000 </TH><TD colspan="4"><field name="nemploye2"/></TD></TR> -->
+	<!-- <TR><TH colspan="4" >Nombre d'employés ayant base horaire</TH><TD colspan="4"><field name="nemploye3"/></TD></TR>		 -->
+
+	
+	<!-- <TR><TH colspan="8" bgcolor="#e4ec94" ></TH></TR>		 -->
+	<!-- <TR><TH colspan="4" >Total cotisations à payer</TH><TD colspan="4"><field name="total_cnss"/></TD></TR> -->
+	<!-- <TR><TH colspan="4" >Mode de paiement</TH><TD colspan="4"><field name="payment_mode"/></TD></TR>	 -->
+	<!-- <TR><TH colspan="4" >N° du chèque</TH><TD colspan="4"><field name="cheque_number"/></TD></TR> -->
+	<!-- <TR><TH colspan="4" >Date de paiement</TH><TD colspan="4"><field name="paiem_date"/></TD></TR>	 -->
+
+
+	</table>
+
+</CENTER>
+                        <notebook>
+                            <page string="CNSS">
+                                <field name="cnss_lines" colspan="4" nolabel="1" readonly="1">
+                                    <tree string="LINES" editable="bottom">
+                                        <field name="cnss_id" column_invisible="1"/>
+                                        <field name="employee_id"/>
+                                        <!-- <field name="month_1"/> -->
+                              
+                                        <field name="brute_total"  sum="Total"/>
+                                        <field name="cnss_AT" sum="Total"/>
+                                        <field name="cnss_PF" sum="Total"/>
+                                         <field name="cnss_IPRESC" sum="Total"/>
+                                        <field name="cnss_IPRERG" sum="Total"/>
+                                    </tree>
+                                </field>
+                            </page>
+                            <!-- <page string="Mode de paiement"> -->
+                                <!-- <group col="4"> -->
+                                    <!-- <field name="payment_mode"/> -->
+                                    
+                                    <!-- <field name="cheque_number" attrs="{'invisible': [('payment_mode','!=','cheque')]}"/> -->
+                                    <!-- <field name="bank_transfer" attrs="{'invisible': [('payment_mode','!=','virement')]}"/> -->
+                                    <!-- <field name="bank" attrs="{'invisible': [('payment_mode','not in',['cheque','virement'])]}"/> -->
+                                
+                                    <!-- <field name="voucher_number_1" attrs="{'invisible': [('payment_mode','!=','cheque')]}"/> -->
+                                    <!-- <field name="voucher_number_2" attrs="{'invisible': [('payment_mode','!=','virement')]}"/> -->
+                                    <!-- <field name="voucher_number_date" attrs="{'invisible': [('payment_mode','not in',['cheque','virement'])]}"/> -->
+                                <!-- </group> -->
+                            <!-- </page> -->
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_cnss_form" model="ir.actions.act_window">
+            <field name="name">Déclartaions CSS</field>		
+            <field name="res_model">hr.cnss</field>
+            <field name="view_mode">tree,form</field>
+            <field name="limit">12</field>
+        </record>
+
+         <menuitem
+                name="Déclarations CSS/IPRES"
+                id="menu_hr_payslip_reports"
+                parent="hr_work_entry_contract_enterprise.menu_hr_payroll_root"
+                groups="hr_payroll.group_hr_payroll_user"
+                sequence="80"/>
+
+
+        <menuitem
+            id="cnss_menu_view"
+            name="Déclarations CSS-IPRES"
+            action="action_cnss_form"
+            parent="hr_payroll_seng.menu_hr_payslip_reports"
+            sequence="5"
+        />
+        <!-- <menuitem -->
+            <!-- id="cnss_menu_view2" -->
+            <!-- name="Tableau de déclaration" -->
+            <!-- action="action_cnss_form" -->
+            <!-- parent="hr_payroll_seng.menu_hr_payslip_reports" -->
+            <!-- sequence="5" -->
+        <!-- /> -->
+
+    </data>
+</odoo>

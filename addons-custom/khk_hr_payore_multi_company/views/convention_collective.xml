@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="convention_collective_form_inherit_for_company_id" model="ir.ui.view">
+        <field name="name">convention.collective.form.inherit.company_id</field>
+        <field name="model">convention.collective</field>
+        <field name="inherit_id" ref="khk_hr_payor.convention_collective_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/sheet/group" position="after">
+                <group>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

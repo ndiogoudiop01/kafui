@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Extension fiche employé Sénégal.
+        • Ajoute les champs spécifiques Sénégal (CNSS, IPRES, mutuelle, etc.)
+        • Étend l'onglet « Famille » universel (défini dans gvs_hr_payroll_base)
+          pour y insérer la section Fiscalité Sénégal (IR / TRIMF).
+        • Masque les champs natifs conjoint/date naissance conjoint (gérés via
+          relation_ids).
+        • Ajoute un onglet « Jours travaillés » (invisible) pour l'historique.
+    -->
+
+    <record id="hr_employee_sn_form_inherit" model="ir.ui.view">
+        <field name="name">hr.employee.sn.form.inherit</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Champs d'identification Sénégal -->
+            <xpath expr="//field[@name='identification_id']" position="before">
+                <field name="matricule_cnss"/>
+                <field name="ipres"/>
+                <field name="mutuelle"/>
+            </xpath>
+
+            <xpath expr="//field[@name='identification_id']" position="after">
+                <field name="num_chezemployeur" string="Numéro chez l'employeur"/>
+            </xpath>
+
+            <xpath expr="//field[@name='country_id']" position="attributes">
+                <attribute name="required">True</attribute>
+            </xpath>
+
+            <!-- Masquer les champs conjoint natifs : gérés via relation_ids -->
+            <xpath expr="//field[@name='spouse_complete_name']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
+            <xpath expr="//field[@name='spouse_birthdate']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
+
+            <!-- Champ technique is_sn_payroll (pour visibilité Fiscalité) -->
+            <xpath expr="//field[@name='marital']" position="after">
+                <field name="is_sn_payroll" invisible="1"/>
+            </xpath>
+
+            <!-- Fiscalité Sénégal dans l'onglet Famille universel (gvs_hr_payroll_base) -->
+            <!-- Ajouté avant le groupe "famille_nb_charge" (nommé dans gvs_hr_payroll_base) -->
+            <xpath expr="//page[@name='famille']//group[@name='famille_nb_charge']"
+                   position="before">
+                <group string="Fiscalité" invisible="not is_sn_payroll">
+                    <field name="ir" string="Parts IR"/>
+                    <field name="trimf" string="Parts TRIMF"/>
+                </group>
+            </xpath>
+
+            <!-- Onglet Jours travaillés (invisible, pour consultation admin) -->
+            <xpath expr="//page[@name='famille']" position="after">
+                <page string="Jours travaillés" invisible="True">
+                    <group>
+                        <field name="worked_days_per_years" readonly="True">
+                            <list>
+                                <field name="year"/>
+                                <field name="worked_days"/>
+                            </list>
+                        </field>
+                    </group>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

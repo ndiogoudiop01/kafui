@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Règles de sécurité par PAYS pour les structures et règles de paie GVS.
+
+        Principe : la visibilité est déterminée exclusivement par user.env.company.country_id
+        (société ACTIVE dans l'UI). Deux comportements possibles :
+
+          1. Société AVEC pays défini (ex. Togo) :
+             → Affiche UNIQUEMENT les enregistrements du même pays.
+             → Les règles/structures universelles (country_id=False) sont masquées :
+               l'utilisateur ne voit que les règles du module pays correspondant.
+
+          2. Société SANS pays défini :
+             → Affiche UNIQUEMENT les enregistrements universels (country_id=False).
+             → Les règles pays (Togo, SN, etc.) restent masquées.
+
+        Exception — Catégories (hr.salary.rule.category) :
+          Les catégories universelles (BASIC, ALW, GROSS, NET…) restent toujours visibles
+          car elles sont nécessaires à la configuration des règles de tous les modules pays.
+
+        Compatibilité enterprise hr_payroll :
+          L'enterprise définit des ir.rule GLOBALES (sans groupe) filtrées par country_id.
+          Nos règles GVS sont pour le groupe base.group_user ; elles s'appliquent en ET
+          avec les règles globales enterprise. Le filtrage strict par pays les rend
+          redondantes mais jamais contradictoires.
+
+        Modules pays (gvs_hr_payroll_tg, etc.) : définir country_id explicitement
+        dans les fichiers data. Ne PAS utiliser company_id=True car les règles sont
+        globales (company_id=False).
+    -->
+
+    <!--
+        STRUCTURES DE PAIE
+        Société avec pays → uniquement les structures de ce pays.
+        Société sans pays → uniquement les structures universelles.
+    -->
+    <record id="hr_payroll_structure_company_rule" model="ir.rule">
+        <field name="name">Structure de paie — filtrage strict par pays</field>
+        <field name="model_id" model="ir.model" search="[('model','=','hr.payroll.structure')]"/>
+        <field eval="False" name="global"/>
+        <field name="domain_force">
+            [('country_id', '=', user.env.company.country_id.id or False)]
+        </field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!--
+        RÈGLES SALARIALES
+        Société avec pays (ex. Togo) → uniquement les règles de ce pays.
+        Société sans pays → uniquement les règles universelles (country_id=False).
+        Résultat : une société Togo voit SEULEMENT les règles du module gvs_hr_payroll_tg.
+    -->
+    <record id="hr_salary_rule_company_rule" model="ir.rule">
+        <field name="name">Règle salariale — filtrage strict par pays</field>
+        <field name="model_id" model="ir.model" search="[('model','=','hr.salary.rule')]"/>
+        <field eval="False" name="global"/>
+        <field name="domain_force">
+            [('country_id', '=', user.env.company.country_id.id or False)]
+        </field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!--
+        CATÉGORIES DE RÈGLES SALARIALES
+        Toujours visible : universelles (country_id=False) + pays de la société active.
+        Les catégories universelles (BASIC, ALW, GROSS, NET…) sont partagées entre tous
+        les modules pays et doivent rester accessibles à tous.
+    -->
+    <record id="hr_salary_rule_category_company_rule" model="ir.rule">
+        <field name="name">Catégorie règle salariale — filtrage par pays</field>
+        <field name="model_id" model="ir.model" search="[('model','=','hr.salary.rule.category')]"/>
+        <field eval="False" name="global"/>
+        <field name="domain_force">
+            ['|', ('country_id', '=', False),
+                  ('country_id', '=', user.env.company.country_id.id or False)]
+        </field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+</odoo>

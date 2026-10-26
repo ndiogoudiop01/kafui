@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            Catégories spécifiques au Togo.
+            Les catégories standard (BASIC, ALW, GROSS, DED, NET, COMP) sont déjà
+            créées par om_hr_payroll et référencées via om_hr_payroll.BASIC, etc.
+        -->
+
+        <!-- TECH : valeurs intermédiaires invisibles sur le bulletin -->
+        <record id="TECH" model="hr.salary.rule.category">
+            <field name="name">Technique</field>
+            <field name="code">TECH</field>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+        <!-- ALW_NI : indemnités non imposables, hors assiette CNSS et IRPP -->
+        <record id="ALW_NI" model="hr.salary.rule.category">
+            <field name="name">Allocation non imposable</field>
+            <field name="code">ALW_NI</field>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.tg"/>
+        </record>
+
+    </data>
+</odoo>

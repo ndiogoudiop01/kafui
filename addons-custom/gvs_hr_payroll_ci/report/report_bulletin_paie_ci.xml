@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Action rapport — Bulletin de Paie Côte d'Ivoire
+         Disponible dans le menu "Imprimer" sur hr.payslip
+         ================================================================ -->
+    <record id="action_report_bulletin_paie_ci" model="ir.actions.report">
+        <field name="name">Bulletin de Paie Côte d'Ivoire</field>
+        <field name="model">hr.payslip</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">gvs_hr_payroll_ci.report_bulletin_paie_ci_template</field>
+        <field name="report_file">gvs_hr_payroll_ci.report_bulletin_paie_ci_template</field>
+        <field name="print_report_name">('Bulletin CI - %s - %s' % (object.employee_id.name, object.date_from.strftime('%m/%Y') if object.date_from else ''))</field>
+        <field name="binding_model_id" ref="om_hr_payroll.model_hr_payslip"/>
+        <field name="binding_type">report</field>
+        <field name="domain">[('company_id.country_id.code', '=', 'CI')]</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+
+    <!-- ================================================================
+         Template QWeb — Bulletin de Paie Côte d'Ivoire
+         ================================================================ -->
+    <template id="report_bulletin_paie_ci_template">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page" style="font-size:10pt; padding-top:15px;">
+
+                        <!-- ═══ EN-TÊTE ═══ -->
+                        <table width="100%" style="margin-bottom:6px; border-collapse:collapse;">
+                            <tr>
+                                <td style="width:55%; vertical-align:top;">
+                                    <!-- Logo déjà rendu par web.external_layout en haut de page -->
+                                    <strong style="font-size:12pt;">
+                                        <t t-esc="o.company_id.name"/>
+                                    </strong>
+                                    <t t-if="o.company_id.vat">
+                                        <br/>NIF-CI : <t t-esc="o.company_id.vat"/>
+                                    </t>
+                                    <t t-if="o.company_id.company_registry">
+                                        <br/>RCCM : <t t-esc="o.company_id.company_registry"/>
+                                    </t>
+                                    <br/>
+                                    <t t-esc="o.company_id.street or ''"/>
+                                    <t t-if="o.company_id.city">
+                                        — <t t-esc="o.company_id.city"/>
+                                    </t>
+                                </td>
+                                <td style="width:45%; vertical-align:top; text-align:right;">
+                                    <h3 style="margin:0; color:#1a5276;">BULLETIN DE PAIE</h3>
+                                    <p style="margin:4px 0;">
+                                        Mois de :
+                                        <strong>
+                                            <t t-esc="o.date_from" t-options="{'widget': 'date', 'format': 'MMMM yyyy'}"/>
+                                        </strong>
+                                    </p>
+                                    <p style="margin:4px 0;">
+                                        Période du
+                                        <strong><t t-esc="o.date_from" t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"/></strong>
+                                        au
+                                        <strong><t t-esc="o.date_to" t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"/></strong>
+                                    </p>
+                                    <t t-if="o.number">
+                                        <p style="margin:4px 0;">Réf. : <t t-esc="o.number"/></p>
+                                    </t>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <hr style="border:1px solid #1a5276; margin:4px 0;"/>
+
+                        <!-- ═══ IDENTITÉ EMPLOYÉ ═══ -->
+                        <table width="100%" style="margin-bottom:6px; border-collapse:collapse; font-size:9pt;">
+                            <tr>
+                                <td style="width:22%;"><strong>Employé :</strong></td>
+                                <td style="width:30%;"><t t-esc="o.employee_id.name"/></td>
+                                <td style="width:24%;"><strong>N° CNPS :</strong></td>
+                                <td style="width:24%;"><t t-esc="o.employee_id.ssnid or ''"/></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Poste :</strong></td>
+                                <td><t t-esc="o.employee_id.job_id.name or ''"/></td>
+                                <td><strong>Date d'entrée :</strong></td>
+                                <td>
+                                    <t t-if="o.version_id and o.version_id.date_start">
+                                        <t t-esc="o.version_id.date_start" t-options="{'widget': 'date', 'format': 'dd/MM/yyyy'}"/>
+                                    </t>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Département :</strong></td>
+                                <td><t t-esc="o.employee_id.department_id.name or ''"/></td>
+                                <td><strong>Statut marital :</strong></td>
+                                <td>
+                                    <t t-if="o.employee_id.marital == 'married'">Marié(e)</t>
+                                    <t t-elif="o.employee_id.marital == 'cohabitant'">Concubin(e)</t>
+                                    <t t-elif="o.employee_id.marital == 'divorced'">Divorcé(e)</t>
+                                    <t t-elif="o.employee_id.marital == 'widower'">Veuf/Veuve</t>
+                                    <t t-else="">Célibataire</t>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Structure :</strong></td>
+                                <td><t t-esc="o.struct_id.name or ''"/></td>
+                                <td><strong>Enfants à charge :</strong></td>
+                                <td><t t-esc="o.employee_id.children or 0"/></td>
+                            </tr>
+                        </table>
+
+                        <hr style="border:1px solid #cccccc; margin:4px 0;"/>
+
+                        <!-- ═══ TABLEAU DES RUBRIQUES ═══
+                             Colonnes : Code | Libellé | Base | Taux/NB | Retenues | Gains
+                        -->
+                        <table width="100%" style="border-collapse:collapse; font-size:9pt; margin-bottom:6px;">
+                            <thead>
+                                <tr style="background:#1a5276; color:white; text-align:center;">
+                                    <th style="border:1px solid #aaa; padding:3px; width:9%;">Code</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:32%;">Rubriques</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:15%; text-align:right;">Base</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:10%; text-align:right;">Taux/NB</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:17%; text-align:right;">Retenues</th>
+                                    <th style="border:1px solid #aaa; padding:3px; width:17%; text-align:right;">Gains</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                                <!-- ── Gains imposables (BASIC + ALW) ── -->
+                                <t t-foreach="o.line_ids.filtered(lambda l: l.appears_on_payslip and l.category_id.code in ('BASIC', 'ALW') and l.total != 0)" t-as="line">
+                                    <tr>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.code"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.name"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <!-- Base = montant avant taux pour PR_ANC et toute règle à taux variable -->
+                                            <t t-if="line.code == 'PR_ANC' or (line.rate and line.rate != 100.0)">
+                                                <t t-esc="'{:,.0f}'.format(abs(line.amount)).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-if="line.code == 'PR_ANC' or (line.rate and line.rate != 100.0)">
+                                                <t t-esc="'{:.2f} %'.format(line.rate)"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-if="line.total &lt; 0">
+                                                <t t-esc="'{:,.0f}'.format(abs(line.total)).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-if="line.total &gt;= 0">
+                                                <t t-esc="'{:,.0f}'.format(line.total).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                </t>
+
+                                <!-- ── BRUT IMPOSABLE ── -->
+                                <t t-set="brut_imp_line" t-value="o.line_ids.filtered(lambda l: l.code == 'BRUT_IMP')"/>
+                                <t t-if="brut_imp_line">
+                                    <tr style="background:#e8f4f8; font-weight:bold;">
+                                        <td style="border:1px solid #aaa; padding:2px 4px;">BRUT_IMP</td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px;">SALAIRE BRUT IMPOSABLE</td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(brut_imp_line[0].total).replace(',', ' ')"/>
+                                        </td>
+                                    </tr>
+                                </t>
+
+                                <!-- ── Primes non imposables (ALW_NI) — Arrondi exclu, traité après DED ── -->
+                                <t t-foreach="o.line_ids.filtered(lambda l: l.appears_on_payslip and l.category_id.code == 'ALW_NI' and l.total != 0 and l.code != 'ARRONDI')" t-as="line">
+                                    <tr>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.code"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.name"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;"></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;"></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-if="line.total &lt; 0">
+                                                <t t-esc="'{:,.0f}'.format(abs(line.total)).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-if="line.total &gt;= 0">
+                                                <t t-esc="'{:,.0f}'.format(line.total).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                </t>
+
+                                <!-- ── GAIN BRUT TOTAL ── -->
+                                <t t-set="brut_line" t-value="o.line_ids.filtered(lambda l: l.code == 'BRUT')"/>
+                                <t t-if="brut_line">
+                                    <tr style="background:#d5e8d4; font-weight:bold;">
+                                        <td style="border:1px solid #aaa; padding:2px 4px;">BRUT</td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px;">GAIN BRUT TOTAL</td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #aaa; padding:2px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(brut_line[0].total).replace(',', ' ')"/>
+                                        </td>
+                                    </tr>
+                                </t>
+
+                                <!-- ── Retenues salariales (DED) ── -->
+                                <t t-foreach="o.line_ids.filtered(lambda l: l.appears_on_payslip and l.category_id.code == 'DED' and l.total != 0)" t-as="line">
+                                    <tr>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.code"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"><t t-esc="line.name"/></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <!-- Base de calcul selon la règle -->
+                                            <t t-if="line.code == 'ITS' and brut_imp_line">
+                                                <t t-esc="'{:,.0f}'.format(brut_imp_line[0].total).replace(',', ' ')"/>
+                                            </t>
+                                            <t t-elif="line.code == 'CNPS_SAL'">
+                                                <t t-set="base_cnps_line" t-value="o.line_ids.filtered(lambda l: l.code == 'BASE_CNPS')"/>
+                                                <t t-if="base_cnps_line">
+                                                    <t t-esc="'{:,.0f}'.format(base_cnps_line[0].total).replace(',', ' ')"/>
+                                                </t>
+                                            </t>
+                                            <t t-elif="line.code == 'CMU_SAL'">
+                                                500
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <!-- Taux/NB : taux % pour les règles à taux fixe,
+                                                 taux effectif pour ITS,
+                                                 effectif (nb personnes) pour CMU -->
+                                            <t t-if="line.code == 'ITS' and brut_imp_line and brut_imp_line[0].total">
+                                                <t t-esc="'{:.2f} %'.format(abs(line.total) / brut_imp_line[0].total * 100)"/>
+                                            </t>
+                                            <t t-elif="line.code == 'CMU_SAL'">
+                                                <t t-esc="'{:.0f} pers.'.format(round(abs(line.total) / 500))"/>
+                                            </t>
+                                            <t t-elif="line.rate and line.rate != 100.0">
+                                                <t t-esc="'{:.2f} %'.format(line.rate)"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-esc="'{:,.0f}'.format(abs(line.total)).replace(',', ' ')"/>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;"></td>
+                                    </tr>
+                                </t>
+
+                                <!-- ── Arrondi de paie (après retenues, avant NET) ── -->
+                                <t t-set="arrondi_line" t-value="o.line_ids.filtered(lambda l: l.code == 'ARRONDI')"/>
+                                <t t-if="arrondi_line and arrondi_line[0].total != 0">
+                                    <tr>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;">ARRONDI</td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;">Arrondi de paie</td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px;"></td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-if="arrondi_line[0].total &lt; 0">
+                                                <t t-esc="'{:,.0f}'.format(abs(arrondi_line[0].total)).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                        <td style="border:1px solid #ddd; padding:2px 4px; text-align:right;">
+                                            <t t-if="arrondi_line[0].total &gt; 0">
+                                                <t t-esc="'{:,.0f}'.format(arrondi_line[0].total).replace(',', ' ')"/>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                </t>
+
+                                <!-- ── NET À PAYER ── -->
+                                <t t-set="net_line" t-value="o.line_ids.filtered(lambda l: l.code == 'NET')"/>
+                                <tr style="background:#1a5276; color:white; font-weight:bold; font-size:11pt;">
+                                    <td style="border:1px solid #aaa; padding:4px;" colspan="2">NET À PAYER</td>
+                                    <td style="border:1px solid #aaa; padding:4px;"></td>
+                                    <td style="border:1px solid #aaa; padding:4px;"></td>
+                                    <td style="border:1px solid #aaa; padding:4px;"></td>
+                                    <td style="border:1px solid #aaa; padding:4px; text-align:right;">
+                                        <t t-if="net_line">
+                                            <t t-esc="'{:,.0f}'.format(net_line[0].total).replace(',', ' ')"/> FCFA
+                                        </t>
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+
+                        <!-- ═══ RÉCAPITULATIF EMPLOYEUR ═══ -->
+                        <t t-set="brut_imp_v"   t-value="o.line_ids.filtered(lambda l: l.code == 'BRUT_IMP')"/>
+                        <t t-set="its_v"        t-value="o.line_ids.filtered(lambda l: l.code == 'ITS')"/>
+                        <t t-set="cnps_sal_v"   t-value="o.line_ids.filtered(lambda l: l.code == 'CNPS_SAL')"/>
+                        <t t-set="cmu_sal_v"    t-value="o.line_ids.filtered(lambda l: l.code == 'CMU_SAL')"/>
+                        <t t-set="cnps_pat_v"   t-value="o.line_ids.filtered(lambda l: l.code == 'CNPS_PAT')"/>
+                        <t t-set="is_pat_v"     t-value="o.line_ids.filtered(lambda l: l.code == 'IS_PAT')"/>
+                        <t t-set="taxe_app_v"   t-value="o.line_ids.filtered(lambda l: l.code == 'TAXE_APP')"/>
+                        <t t-set="taxe_fpc_v"   t-value="o.line_ids.filtered(lambda l: l.code == 'TAXE_FPC')"/>
+                        <t t-set="cnps_pf_v"    t-value="o.line_ids.filtered(lambda l: l.code == 'CNPS_PF')"/>
+                        <t t-set="cnps_at_v"    t-value="o.line_ids.filtered(lambda l: l.code == 'CNPS_AT')"/>
+                        <t t-set="cmu_pat_v"    t-value="o.line_ids.filtered(lambda l: l.code == 'CMU_PAT')"/>
+                        <t t-set="tot_pat_v"    t-value="o.line_ids.filtered(lambda l: l.code == 'TOT_PAT')"/>
+
+                        <table width="100%" style="border-collapse:collapse; font-size:9pt; margin-top:8px;">
+                            <tr style="background:#d6eaf8;">
+                                <td colspan="4" style="padding:3px 6px; font-weight:bold; border:1px solid #aaa;">
+                                    RÉCAPITULATIF EMPLOYEUR
+                                </td>
+                            </tr>
+                            <!-- Ligne 1 : Brut imposable / CNPS patronale -->
+                            <tr>
+                                <td style="border:1px solid #ddd; padding:2px 6px; width:30%;">Brut imposable (ITS)</td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; text-align:right; width:20%;">
+                                    <t t-if="brut_imp_v">
+                                        <t t-esc="'{:,.0f}'.format(brut_imp_v[0].total).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; width:30%;">CNPS patronale retraite (7,7 %)</td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; text-align:right; width:20%;">
+                                    <t t-if="cnps_pat_v">
+                                        <t t-esc="'{:,.0f}'.format(cnps_pat_v[0].total).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                            </tr>
+                            <!-- Ligne 2 : ITS / IS patronal -->
+                            <tr>
+                                <td style="border:1px solid #ddd; padding:2px 6px;">ITS salarié</td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; text-align:right;">
+                                    <t t-if="its_v">
+                                        <t t-esc="'{:,.0f}'.format(abs(its_v[0].total)).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                                <td style="border:1px solid #ddd; padding:2px 6px;">Impôt sur salaires (IS 1,2 %)</td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; text-align:right;">
+                                    <t t-if="is_pat_v">
+                                        <t t-esc="'{:,.0f}'.format(is_pat_v[0].total).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                            </tr>
+                            <!-- Ligne 3 : CNPS salarié / Taxe apprentissage -->
+                            <tr>
+                                <td style="border:1px solid #ddd; padding:2px 6px;">CNPS retraite salarié (6,3 %)</td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; text-align:right;">
+                                    <t t-if="cnps_sal_v">
+                                        <t t-esc="'{:,.0f}'.format(abs(cnps_sal_v[0].total)).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                                <td style="border:1px solid #ddd; padding:2px 6px;">Taxe d'apprentissage (0,4 %)</td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; text-align:right;">
+                                    <t t-if="taxe_app_v">
+                                        <t t-esc="'{:,.0f}'.format(taxe_app_v[0].total).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                            </tr>
+                            <!-- Ligne 4 : CMU salarié / Taxe FPC -->
+                            <tr>
+                                <td style="border:1px solid #ddd; padding:2px 6px;">CMU salarié</td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; text-align:right;">
+                                    <t t-if="cmu_sal_v">
+                                        <t t-esc="'{:,.0f}'.format(abs(cmu_sal_v[0].total)).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                                <td style="border:1px solid #ddd; padding:2px 6px;">Taxe FPC (0,6 %)</td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; text-align:right;">
+                                    <t t-if="taxe_fpc_v">
+                                        <t t-esc="'{:,.0f}'.format(taxe_fpc_v[0].total).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                            </tr>
+                            <!-- Ligne 5 : vide / PF -->
+                            <tr>
+                                <td style="border:1px solid #ddd; padding:2px 6px;"></td>
+                                <td style="border:1px solid #ddd; padding:2px 6px;"></td>
+                                <td style="border:1px solid #ddd; padding:2px 6px;">Prestations familiales (5,75 %)</td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; text-align:right;">
+                                    <t t-if="cnps_pf_v">
+                                        <t t-esc="'{:,.0f}'.format(cnps_pf_v[0].total).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                            </tr>
+                            <!-- Ligne 6 : vide / AT -->
+                            <tr>
+                                <td style="border:1px solid #ddd; padding:2px 6px;"></td>
+                                <td style="border:1px solid #ddd; padding:2px 6px;"></td>
+                                <td style="border:1px solid #ddd; padding:2px 6px;">Accident du travail (3 %)</td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; text-align:right;">
+                                    <t t-if="cnps_at_v">
+                                        <t t-esc="'{:,.0f}'.format(cnps_at_v[0].total).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                            </tr>
+                            <!-- Ligne 7 : vide / CMU patronal -->
+                            <tr>
+                                <td style="border:1px solid #ddd; padding:2px 6px;"></td>
+                                <td style="border:1px solid #ddd; padding:2px 6px;"></td>
+                                <td style="border:1px solid #ddd; padding:2px 6px;">CMU patronal</td>
+                                <td style="border:1px solid #ddd; padding:2px 6px; text-align:right;">
+                                    <t t-if="cmu_pat_v">
+                                        <t t-esc="'{:,.0f}'.format(cmu_pat_v[0].total).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                            </tr>
+                            <!-- Ligne totaux : coût employeur -->
+                            <tr style="background:#fef9e7; font-weight:bold;">
+                                <td style="border:1px solid #aaa; padding:2px 6px;" colspan="2"></td>
+                                <td style="border:1px solid #aaa; padding:2px 6px;">TOTAL CHARGES PATRONALES</td>
+                                <td style="border:1px solid #aaa; padding:2px 6px; text-align:right;">
+                                    <t t-if="tot_pat_v">
+                                        <t t-esc="'{:,.0f}'.format(tot_pat_v[0].total).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                            </tr>
+                            <!-- Coût total employeur -->
+                            <tr style="background:#d5e8d4; font-weight:bold;">
+                                <td style="border:1px solid #aaa; padding:3px 6px;" colspan="2">
+                                    Net à payer :
+                                    <t t-if="net_line">
+                                        <t t-esc="'{:,.0f}'.format(net_line[0].total).replace(',', ' ')"/> FCFA
+                                    </t>
+                                </td>
+                                <td style="border:1px solid #aaa; padding:3px 6px;">COÛT TOTAL EMPLOYEUR</td>
+                                <td style="border:1px solid #aaa; padding:3px 6px; text-align:right;">
+                                    <t t-if="brut_line and tot_pat_v">
+                                        <t t-esc="'{:,.0f}'.format(brut_line[0].total + tot_pat_v[0].total).replace(',', ' ')"/> F
+                                    </t>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- ═══ ZONE SIGNATURE ═══ -->
+                        <table width="100%" style="margin-top:24px; border-collapse:collapse;">
+                            <tr>
+                                <td style="width:45%; text-align:center; vertical-align:bottom;">
+                                    <p>Le / La salarié(e)</p>
+                                    <br/><br/>
+                                    <p style="border-top:1px solid #333; margin-top:20px; padding-top:4px;">Signature</p>
+                                </td>
+                                <td style="width:10%;"></td>
+                                <td style="width:45%; text-align:center; vertical-align:bottom;">
+                                    <p>Pour l'employeur</p>
+                                    <br/><br/>
+                                    <p style="border-top:1px solid #333; margin-top:20px; padding-top:4px;">Cachet et signature</p>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </div><!-- /page -->
+                </t><!-- /external_layout -->
+            </t><!-- /foreach docs -->
+        </t><!-- /html_container -->
+    </template>
+
+</odoo>

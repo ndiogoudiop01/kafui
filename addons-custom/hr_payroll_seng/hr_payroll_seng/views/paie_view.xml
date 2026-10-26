@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+        <record id="view_hr_paie_tree" model="ir.ui.view">
+            <field name="name">hr.tree.view</field>
+            <field name="model">hr.paie</field>
+            <field name="arch" type="xml">
+                <tree name="paie">
+				 <field name="name"/>
+                    <field name="month"/>
+                  <field name="mode_pay"/>
+				  <field name="nemployem"/>
+					<field name="brut_total"/>
+					<field name="net_total"/>
+               
+				
+                </tree>
+            </field>
+        </record>
+
+        <record id="hr_paie_form_view" model="ir.ui.view">
+            <field name="name">hr.paie.form.view</field>
+            <field name="model">hr.paie</field>
+            <field name="arch" type="xml">
+                <form name="CSS">
+                    <header>
+                    <button string="Importer/mettre à jour les données" name="paie_generate" type="object" invisible = "state != 'draft'"  class="oe_highlight"/>
+					<button name="print_report_selonm" type="object" string="Imprimer le tableau selon le mode de paiement" class="oe_highlight"/>
+					<button name="print_report" type="object" string="Imprimer le tableau de décompte monétaire" class="oe_highlight"/>
+					<button string="Confirmer" name="paie_confirm" type="object" invisible = "state != 'draft'" class="oe_highlight"/>
+                        <button string="Payée" name="paie_payed" type="object" invisible = "state != 'waiting'" class="oe_highlight"/>
+                        <field name="state" widget="statusbar"/>
+                    </header>
+                    <sheet>
+                        <h2>
+                            <field name="name" class="oe_inline" readonly="1"/>
+							 
+							<field name="company_id" groups="base.group_multi_company"/>
+                        </h2>
+                     
+<center>
+                            <table class="table"  style="width:65%;" >
+	
+
+			
+	<TR><TH colspan="4" bgcolor="#e9ecef" >Année</TH><TD colspan="4" bgcolor="#d7e6e9"><field name="year"/></TD><TH colspan="4" bgcolor="#e9ecef">Mois</TH><TD colspan="4" bgcolor="#d7e6e9"><field name="month"/></TD></TR>				
+
+
+<TR><TH colspan="4" bgcolor="#e9ecef" >Total Net à payer</TH><TD colspan="4" bgcolor="#d7e6e9"><field name="net_total"/></TD><TH colspan="4" bgcolor="#e9ecef" >Du/au</TH><TD colspan="4" bgcolor="#d7e6e9"><field name="date_from"/><![CDATA[&nbsp;]]><![CDATA[&nbsp;]]>au <field name="date_to"/></TD>		</TR>
+
+	</table>
+
+</center>
+                        <notebook>
+						
+                            <page string="Journal de la paie">
+                                <field name="paie_lines" colspan="4" nolabel="1" readonly="1">
+                                    <tree string="LINES" editable="bottom">
+                                        <field name="paie_id" column_invisible="1"/>
+										
+                                        <field name="employee_id"/>
+										 <field name="modepaiement" />
+										 <field name="base" sum="Total"/>
+                                        <field name="brut" sum="Total"/>
+										  <field name="net" sum="Total"/>
+										 <field name="days"  sum="Total"/>
+                                        <field name="hours"  sum="Total"/>
+                                       
+										 
+										 
+                              
+                                    </tree>
+                                </field>
+                            </page>
+                     
+                      
+						
+						 
+                   
+				
+					 
+					 
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_paie_form" model="ir.actions.act_window">
+            <field name="name">Etat de la paie</field>		
+            <field name="res_model">hr.paie</field>
+            <field name="view_mode">tree,form</field>
+             <field name="view_id" ref="view_hr_paie_tree"/>
+        </record>
+
+           <menuitem
+                name="Etats et Décompte monétaire"
+                id="menu_hr_payslip_dec"
+                parent="hr_work_entry_contract_enterprise.menu_hr_payroll_root"
+                groups="hr_payroll.group_hr_payroll_user"
+                sequence="80"/>
+		
+        <!-- <menuitem -->
+            <!-- id="paie_menu_view_mode" -->
+            <!-- name="Liste selon mode de paiement" -->
+            <!-- action="action_paie_form" -->
+            <!-- parent="hr_payroll_cameroun.menu_hr_payslip_dec" -->
+            <!-- sequence="7" -->
+			 <!-- /> -->
+        <menuitem
+            id="paie_menu_view"
+            name="Décompte monétaire"
+            action="action_paie_form"
+            parent="hr_payroll_seng.menu_hr_payslip_dec"
+            sequence="2"
+			 />
+</odoo>

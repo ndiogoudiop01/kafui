@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+		<record id="res_company_form_l10n_ma" model="ir.ui.view">
+            <field name="name">res.company.form.l10n.ma</field>
+            <field name="model">res.company</field>
+            <field name="inherit_id" ref="base.view_company_form"/>
+            <field name="arch" type="xml">
+			 <data>
+             <xpath expr="//notebook" position="inside">
+			 <page name="senegal_paie" string="Taux CSS et IPRES">
+                          
+ 	
+                               <field name="taux_bol"/> 
+	<table class="table table-bordered"  style="width:75;" invisible ="taux_bol == False">
+	<TR>
+		<TH bgcolor="#e4ec94" colspan="8">Tableau des taux CSS et IPRES</TH></TR>
+		
+	<TR><TH colspan="4" >Rubrique</TH><TH colspan="4">Taux</TH></TR>				
+	<TR><TH colspan="4" >Taux IPRES Salarial</TH><TD colspan="4"><field name="t_ipres_s"/></TD></TR>
+
+
+	<TR><TH colspan="8" bgcolor="#e4ec94" >Cotisations Patronales</TH></TR>	
+	<TR><TH colspan="4" >Taux IPRES patronal</TH><TD colspan="4"><field name="t_ipres_p"/></TD></TR>
+
+	<TR><TH colspan="4" >Taux Prestations Familiales </TH><TD colspan="4"><field name="t_pfam"/></TD></TR>		
+	<TR><TH colspan="4" >Taux accidents de travail et maladies prof.</TH><TD colspan="4"><field name="accid_trv"/></TD></TR>
+	<TR><TH colspan="4" >AMO</TH><TD colspan="4"><field name="t_amop"/></TD></TR>
+	<TR><TH colspan="4" >IPM/CMU</TH><TD colspan="4"><field name="t_ipm"/></TD></TR>	
+	<TR><TH colspan="8" bgcolor="#e4ec94" >Plafonds</TH></TR>		
+	<TR><TH colspan="4" >Plafond Prestations familiales et accidents de T.</TH><TD colspan="4"><field name="plafond1"/></TD></TR>
+	<TR><TH colspan="4" >Plafond Vieillesse régime général (IPRES</TH><TD colspan="4"><field name="plafond2"/></TD></TR>	
+	<TR><TH colspan="4" >Plafond Vieillesse complémentaire</TH><TD colspan="4"><field name="plafond3"/></TD></TR>
+	<TR><TH bgcolor="#e4ec94" colspan="8">Assurance Maladie obligatoire</TH></TR>
+	<TR><TH colspan="4" >Activer l' AMO</TH><TD colspan="4"><field name="actv_amo"/></TD></TR>		
+	<TR><TH colspan="4" >Taux AMO</TH><TD colspan="4"><field name="t_amos"/></TD></TR>		
+	<TR><TH colspan="4" >Taux AMO</TH><TD colspan="4"><field name="t_amos"/></TD></TR>		
+	<TR><TH colspan="4" >Plafond AMO</TH><TD colspan="4"><field name="plafond4"/></TD></TR>	
+	<TR><TH bgcolor="#e4ec94" colspan="8">IPRES complémentaires</TH></TR>
+	<TR><TH colspan="4" >Activer l' AMO</TH><TD colspan="4"><field name="actv_ipres"/></TD></TR>		
+	<TR><TH colspan="4" >Taux IPRES Salarial Complémentaire</TH><TD colspan="4"><field name="t_ipres_sc"/></TD></TR>
+	<TR><TH colspan="4" >Taux IPRES patronal Complémentaire</TH><TD colspan="4"><field name="t_ipres_pc"/></TD></TR>
+	</table>
+
+				 
+				<table class="table table-bordered"  style="width:70%;" invisible = "taux_bol == False">	
+
+	<TR>
+		<TH bgcolor="#e4ec94" colspan="16">Tranches Réductions<br/><p style="color:red">ATTENTION! NE RIEN MODIFIER</p></TH></TR>
+				
+
+	<TR><TH colspan="4" >Nombre de parts</TH>        <TH colspan="4">Taux</TH>           <TH colspan="4" >Minimum</TH>   <TH colspan="4" >Maximum</TH>               </TR>
+	<TR><TD colspan="4" ><field name="part1"/></TD><TD colspan="4"><field name="tpart1" /></TD> <TD colspan="4" ><field name="minpart1" /></TD><TD colspan="4" ><field name="maxpart1"/></TD></TR>
+	<TR><TD colspan="4" ><field name="part2"/></TD><TD colspan="4"><field name="tpart2" /></TD> <TD colspan="4" ><field name="minpart2" /></TD><TD colspan="4" ><field name="maxpart2"/></TD></TR>
+	<TR><TD colspan="4" ><field name="part3"/></TD><TD colspan="4"><field name="tpart3" /></TD> <TD colspan="4" ><field name="minpart3" /></TD><TD colspan="4" ><field name="maxpart3"/></TD></TR>
+	<TR><TD colspan="4" ><field name="part4"/></TD><TD colspan="4"><field name="tpart4" /></TD> <TD colspan="4" ><field name="minpart4" /></TD><TD colspan="4" ><field name="maxpart4"/></TD></TR>
+	<TR><TD colspan="4" ><field name="part5"/></TD><TD colspan="4"><field name="tpart5" /></TD> <TD colspan="4" ><field name="minpart5" /></TD><TD colspan="4" ><field name="maxpart5"/></TD></TR>
+    <TR><TD colspan="4" ><field name="part6"/></TD><TD colspan="4"><field name="tpart6" /></TD> <TD colspan="4" ><field name="minpart6" /></TD><TD colspan="4" ><field name="maxpart6"/></TD></TR>
+	<TR><TD colspan="4" ><field name="part7"/></TD><TD colspan="4"><field name="tpart7" /></TD> <TD colspan="4" ><field name="minpart7" /></TD><TD colspan="4" ><field name="maxpart7"/></TD></TR>
+	<TR><TD colspan="4" ><field name="part8"/></TD><TD colspan="4"><field name="tpart8" /></TD> <TD colspan="4" ><field name="minpart8" /></TD><TD colspan="4" ><field name="maxpart8"/></TD></TR>
+    <TR><TD colspan="4" ><field name="part9"/></TD><TD colspan="4"><field name="tpart9" /></TD> <TD colspan="4" ><field name="minpart9" /></TD><TD colspan="4" ><field name="maxpart9"/></TD></TR>
+
+	
+
+</table> 
+</page> 				
+	<page string=" IRTranches et taux )" name="information">
+          
+					                    
+										
+                               <field name="igr_bol"/> 
+										<table class="table table-bordered"  style="width:70%;" invisible = "igr_bol == False">
+	<TR>
+		<TH bgcolor="#e4ec94" colspan="14">Tranches d'impôts<br/><p style="color:red">ATTENTION! NE RIEN MODIFIER</p></TH></TR>
+				
+	
+	
+	<TR><TH colspan="4" >Tranche RR du</TH>        <TH colspan="4">Tranche RR Au</TH>           <TH colspan="4" >Taux</TH>                </TR>
+	<TR><TD colspan="4" ><field name="rnidu1"/></TD><TD colspan="4"><field name="rniau1" /></TD> <TD colspan="4" ><field name="taux1" /></TD></TR>
+	<TR><TD colspan="4" ><field name="rnidu2"/></TD><TD colspan="4"><field name="rniau2" /></TD> <TD colspan="4" ><field name="taux2" /></TD></TR>
+	<TR><TD colspan="4" ><field name="rnidu3"/></TD><TD colspan="4"><field name="rniau3" /></TD> <TD colspan="4" ><field name="taux3" /></TD></TR>
+	<TR><TD colspan="4" ><field name="rnidu4"/></TD><TD colspan="4"><field name="rniau4" /></TD> <TD colspan="4" ><field name="taux4" /></TD></TR>
+	<TR><TD colspan="4" ><field name="rnidu5"/></TD><TD colspan="4"><field name="rniau5" /></TD> <TD colspan="4" ><field name="taux5" /></TD></TR>
+    <TR><TD colspan="4" ><field name="rnidu6"/></TD><TD colspan="4"><field name="rniau6" /></TD> <TD colspan="4" ><field name="taux6" /></TD></TR>
+    <TR><TD colspan="4" ><field name="rnidu7"/></TD><TD colspan="4"><field name="rniau7" /></TD> <TD colspan="4" ><field name="taux7" /></TD></TR>
+
+	<TR><TH colspan="4" >Taux d'abbatement</TH><TD colspan="4" ><field name="taux_red"/></TD>  </TR>
+	
+	<TR><TH bgcolor="#e4ec94" colspan="4" >Autres Taxes</TH>        <TH  bgcolor="#e4ec94" colspan="4" >Taux</TH> </TR>
+	<TR><TH colspan="4" >Taxe de la Contribution Forfaitaire(CFE)</TH><TD colspan="4" ><field name="t_tcf"/></TD>  </TR>		
+	</table> 
+				   
+					
+					</page>
+					
+	<page string=" Tranches TRIMF" name="information">
+          
+					                
+										
+                               <field name="igr_bol"/> 
+
+
+<table class="table table-bordered"  style="width:70%;" invisible = "igr_bol == False">
+	<TR>
+		<TH bgcolor="#e4ec94" colspan="14">Tranches TRIMF<br/><p style="color:red">ATTENTION! NE RIEN MODIFIER</p></TH></TR>
+				
+	
+	
+	<TR><TH colspan="4" >Tranche TRIMF du</TH>        <TH colspan="4">Tranche TRIMF Au</TH>           <TH colspan="4" >Montant TRIMF</TH>                </TR>
+	<TR><TD colspan="4" ><field name="trimdu1"/></TD><TD colspan="4"><field name="trimau1" /></TD> <TD colspan="4" ><field name="ttrim1" /></TD></TR>
+	<TR><TD colspan="4" ><field name="trimdu2"/></TD><TD colspan="4"><field name="trimau2" /></TD> <TD colspan="4" ><field name="ttrim2" /></TD></TR>
+	<TR><TD colspan="4" ><field name="trimdu3"/></TD><TD colspan="4"><field name="trimau3" /></TD> <TD colspan="4" ><field name="ttrim3" /></TD></TR>
+	<TR><TD colspan="4" ><field name="trimdu4"/></TD><TD colspan="4"><field name="trimau4" /></TD> <TD colspan="4" ><field name="ttrim4" /></TD></TR>
+	<TR><TD colspan="4" ><field name="trimdu5"/></TD><TD colspan="4"><field name="trimau5" /></TD> <TD colspan="4" ><field name="ttrim5" /></TD></TR>
+    <TR><TD colspan="4" ><field name="trimdu6"/></TD><TD colspan="4"><field name="trimau6" /></TD> <TD colspan="4" ><field name="ttrim6" /></TD></TR>
+
+	
+
+</table> 
+
+				  
+					
+					</page>					
+					
+	 	
+			 <page name="senegal_paie1" string="Données Juridiques">							
+							<group colspan="4" col="6">
+								
+                          
+						
+							<field name="nom"/>					
+							<field name="prenom"/>
+							 </group>
+							 <group colspan="4" col="6">
+							<field name="numeroCIN" />
+							<field name="patente"/>
+							<field name="idfiscal"/>
+							
+							<field name="identifiantTP"/>
+                            <field name="formeJ"/>							
+                            <field name="capital"/>	
+                            <newline/>
+							<field name="org_ss"/>
+							<field name="numeroCE"/>
+							<field name="numeroRC"/>
+							<field name="ice"/>
+							<newline/>					
+							</group>
+                   
+                 
+				  </page>					
+					<page name="sign" string="Responsables et signataires">				
+					<group colspan="4" col="6">
+								
+                            <field name="signataire"/>							 
+                            <field name="fonc_signat"/>								
+                        	
+							<newline/>
+						</group>	
+				</page>	
+					
+				  </xpath> 
+     </data>
+            </field>
+        </record>
+
+</odoo>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Adaptations de la vue bulletin de paie pour le Togo.
+
+        Note : la saisie des éléments variables se fait sur le contrat (onglet
+        "Éléments variables" — hr.employee.bonus), pas sur le bulletin lui-même.
+        L'onglet "Entrées" (input_line_ids) du bulletin n'est pas utilisé.
+
+        L'onglet "Calcul de salaire" affiche TOUTES les lignes calculées (y compris
+        les rubriques techniques comme TECH_JOURS, BRUT_IMP, etc.).
+        L'onglet "Détails par catégorie" filtre déjà sur appears_on_payslip=True
+        dans la vue standard om_hr_payroll — pas besoin de redéfinir ici.
+    -->
+
+</odoo>

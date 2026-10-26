@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!--
+            STRUCTURE SALARIALE — Paie Burkina Faso (unique)
+
+            Une seule structure BF regroupant toutes les règles.
+            company_id = False : globale (utilisable par toutes les sociétés BF).
+            country_id = BF   : isolation via ir.rule de gvs_hr_payroll_base
+                                (invisible des sociétés CI, TG et autres pays).
+            parent_id = False : évite l'auto-assignation vers id=1 (Base for
+                                new structures, country_id=False) qui causerait
+                                une erreur d'accès pour les utilisateurs BF.
+        -->
+        <record id="struct_bf" model="hr.payroll.structure">
+            <field name="name">Burkina Faso — Paie</field>
+            <field name="code">BF_PAIE</field>
+            <field name="parent_id" eval="False"/>
+            <field name="company_id" eval="False"/>
+            <field name="country_id" ref="base.bf"/>
+            <field name="rule_ids" eval="[
+                (4, ref('rule_bf_nb_jours')),
+                (4, ref('rule_bf_sb')),
+                (4, ref('rule_bf_pr_anc')),
+                (4, ref('rule_bf_sursal')),
+                (4, ref('rule_bf_hs20')),
+                (4, ref('rule_bf_hs40')),
+                (4, ref('rule_bf_hs50')),
+                (4, ref('rule_bf_hs75')),
+                (4, ref('rule_bf_hs100')),
+                (4, ref('rule_bf_ind_log')),
+                (4, ref('rule_bf_ind_trsp')),
+                (4, ref('rule_bf_ind_fonct')),
+                (4, ref('rule_bf_brut_imp')),
+                (4, ref('rule_bf_brut')),
+                (4, ref('rule_bf_cnss_base')),
+                (4, ref('rule_bf_base_iuts')),
+                (4, ref('rule_bf_cnss_sal')),
+                (4, ref('rule_bf_iuts')),
+                (4, ref('rule_bf_fsp')),
+                (4, ref('rule_bf_acompte')),
+                (4, ref('rule_bf_dette')),
+                (4, ref('rule_bf_net')),
+                (4, ref('rule_bf_cnss_pat_ret')),
+                (4, ref('rule_bf_cnss_pat_pf')),
+                (4, ref('rule_bf_tot_pat')),
+            ]"/>
+        </record>
+
+    </data>
+</odoo>

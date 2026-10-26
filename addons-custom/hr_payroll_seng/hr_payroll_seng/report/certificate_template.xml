@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+
+        <report
+            id="employee_certificates_report" 
+            model="hr.employee"
+            name="hr_payroll_seng.certificate_report"
+            file="hr_payroll_seng.certificate_report"
+            print_report_name="'Attestation de travail - %s' % (object.name)"					
+            report_type="qweb-html"
+            string="Attestation de travail"/>
+			
+		<report
+            id="employee_certificates_report2" 
+            model="hr.employee"
+            name="hr_payroll_seng.certtravail_report"
+            file="hr_payroll_seng.certtravail_report"
+            print_report_name="'Certificat de travail - %s' % (object.name)"					
+            report_type="qweb-html"
+            string="Certificat de travail"/>
+
+		<report
+            id="employee_certificates_report3" 
+            model="hr.employee"
+            name="hr_payroll_seng.certstage_report"
+            file="hr_payroll_seng.certstage_report"
+            print_report_name="'Certificat de stage - %s' % (object.name)"					
+            report_type="qweb-html"
+            string="Certificat de Stage"/>
+	
+
+
+			
+            
+</odoo>

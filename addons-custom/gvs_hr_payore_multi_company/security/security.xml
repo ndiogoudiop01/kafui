@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Règles multi-société pour les bulletins de paie.
+
+        PROBLÈME D'ORIGINE :
+        om_hr_payroll définit "All Payslip" (Payroll/Manager) avec domain [(1,'=',1)].
+        En Odoo, les règles non-globales d'un même utilisateur se combinent en OR.
+        Donc : [(1,'=',1)] OR [company_ids] = toujours True → tous les bulletins visibles.
+
+        SOLUTION : règles GLOBALES (sans groupe).
+        Les règles globales s'appliquent en AND sur tout le reste :
+          [(1,'=',1)]  AND  [('company_id','in',company_ids)]  =  company_ids uniquement
+
+        Ainsi, même le groupe Payroll/Manager ne voit que les bulletins
+        des sociétés activées dans sa barre de navigation (company_ids).
+
+        Comportement :
+          • Seule société Togo sélectionnée → uniquement les bulletins Togo
+          • Togo + Sénégal sélectionnés  → bulletins Togo + bulletins Sénégal
+    -->
+
+    <!-- ── hr.payslip : règle globale société (lecture seule) ────────────── -->
+    <record id="ir_rule_payslip_global_company" model="ir.rule">
+        <field name="name">Bulletin de paie — filtre société (global)</field>
+        <field name="model_id" ref="om_hr_payroll.model_hr_payslip"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <!-- Pas de champ "groups" → règle globale, appliquée à TOUS les utilisateurs -->
+        <!--
+            Lecture restreinte à ses sociétés.
+            Écriture/création libres : compute_sheet() écrit sur le bulletin
+            en dehors du contexte multi-société strict.
+        -->
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- ── hr.payslip.run : règle globale société ──────────────────────────── -->
+    <record id="ir_rule_payslip_run_global_company" model="ir.rule">
+        <field name="name">Lot de bulletins — filtre société (global)</field>
+        <field name="model_id" ref="om_hr_payroll.model_hr_payslip_run"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- ── hr.payslip.line : règle globale société (lecture/suppression uniquement) ── -->
+    <record id="ir_rule_payslip_line_global_company" model="ir.rule">
+        <field name="name">Ligne de bulletin — filtre société (global)</field>
+        <field name="model_id" ref="om_hr_payroll.model_hr_payslip_line"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <!--
+            perm_read   = True  : on ne lit que les lignes de ses sociétés
+            perm_write  = False : pas de restriction en écriture (calcul du bulletin)
+            perm_create = False : pas de restriction en création (compute_sheet crée
+                                  les lignes dans le contexte du bulletin, qui peut
+                                  être une société différente de la session active)
+            perm_unlink = True  : on ne supprime que les lignes de ses sociétés
+        -->
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!--
+        Les anciennes règles par groupe (base.group_user) sont remplacées par les
+        règles globales ci-dessus. On conserve cependant la règle GVS qui servait
+        de base.group_user — elle sera désormais redondante mais inoffensive
+        puisque AND avec la règle globale donne le même résultat.
+
+        NOTE : om_hr_payroll.hr_payslip_rule_manager (All Payslip, [(1,'=',1)])
+        reste intacte — c'est la règle globale ci-dessus qui la neutralise via AND.
+    -->
+
+</odoo>
